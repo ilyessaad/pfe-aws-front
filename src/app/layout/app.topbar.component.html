@@ -1,0 +1,26 @@
+
+<div class="layout-topbar">
+    <a class="layout-topbar-logo" routerLink="">
+        <img src="assets/img/vermeg.png" alt="logo" style="width: 200px; height: 200px">
+    </a>
+
+    <button #menubutton class="p-link layout-menu-button layout-topbar-button" (click)="layoutService.onMenuToggle()">
+        <i class="pi pi-bars"></i>
+    </button>
+
+    <button #topbarmenubutton class="p-link layout-topbar-menu-button layout-topbar-button" (click)="layoutService.showProfileSidebar()">
+        <i class="pi pi-ellipsis-v"></i>
+    </button>
+
+    <div #topbarmenu class="layout-topbar-menu" [ngClass]="{'layout-topbar-menu-mobile-active': layoutService.state.profileSidebarVisible}">
+
+
+
+        <button *ngIf="(loggedIn$ | async)" class="p-link layout-topbar-button" (click)="logout()">
+            <i class="pi pi-power-off"></i>
+            <span>Se déconnecter</span>
+        </button>
+
+
+    </div>
+</div>
