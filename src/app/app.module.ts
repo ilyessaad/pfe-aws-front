@@ -6,11 +6,15 @@ import { FormsModule } from '@angular/forms';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MessagesModule } from 'primeng/messages';
 import { ToastModule } from 'primeng/toast';
+import { TableModule } from 'primeng/table';
+import { DialogModule } from 'primeng/dialog';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { AppLayoutModule } from './layout/app.layout.module';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+
 
 import { AppLayoutComponent } from './layout/app.layout.component';
 import { AppTopBarComponent } from './layout/app.topbar.component';
@@ -40,6 +44,9 @@ import {AppConfigModule} from "./layout/config/config.module";
         InputTextModule,
         AppRoutingModule,
         AppLayoutModule,
+        TableModule,
+        DialogModule,
+        ConfirmDialogModule
     ],
     providers: [],
     bootstrap: [AppComponent]

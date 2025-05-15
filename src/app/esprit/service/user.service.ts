@@ -3,6 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, catchError, tap, throwError } from 'rxjs';
 import { Router } from '@angular/router';
 import { environment } from 'src/environments/environment';
+import { AwsUser } from '../models/aws-user';
 
 @Injectable({
     providedIn: 'root'
@@ -37,6 +38,24 @@ export class UserService {
         );
     }
 
+    getUsers(): Observable<AwsUser[]> {
+        return this.http.get<AwsUser[]>(`${environment.apiUrl}/users`).pipe(
+            tap((users) => console.log('Utilisateurs récupérés:', users)),
+            catchError(this.handleError)
+        );
+    }
+
+    deleteUser(userId: number): Observable<any> {
+        return this.http.delete(`${environment.apiUrl}/users/${userId}`).pipe(
+            tap((response: any) => {
+                if (response.status === 'success') {
+                    console.log('Utilisateur supprimé avec succès');
+                }
+            }),
+            catchError(this.handleError)
+        );
+    }
+
     isLoggedIn(): Observable<boolean> {
         return this.loggedInSubject.asObservable();
     }
@@ -52,15 +71,19 @@ export class UserService {
     }
 
     private handleError(error: HttpErrorResponse) {
+        let errorMessage = 'Échec de l’opération. Veuillez réessayer.';
         if (error.status === 401) {
-            console.error('Unauthorized access:', error.error.message);
+            errorMessage = 'Accès non autorisé : ' + (error.error.message || 'Identifiants incorrects');
         } else if (error.status === 400) {
-            console.error('Erreur de validation:', error.error.message);
+            errorMessage = error.error.message || 'Erreur de validation des données';
+        } else if (error.status === 404) {
+            errorMessage = error.error.message || 'Ressource non trouvée';
         } else if (error.status === 409) {
-            console.error('Conflit:', error.error.message);
+            errorMessage = error.error.message || 'Conflit : Données déjà existantes';
         } else {
-            console.error('An error occurred:', error.error?.message || error.message);
+            errorMessage = error.error?.message || 'Erreur serveur';
         }
-        return throwError(() => new Error(error.error.message || 'Échec de l’opération. Veuillez réessayer.'));
+        console.error(`${error.status} - ${errorMessage}`);
+        return throwError(() => new Error(errorMessage));
     }
 }

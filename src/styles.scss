@@ -12,3 +12,18 @@ $gutter: 1rem; //for primeflex grid system
 @import "assets/demo/styles/flags/flags.css";
 @import "assets/demo/styles/badges.scss";
 @import "assets/demo/styles/code.scss";
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+.container h2 {
+    margin-bottom: 20px;
+}
+.actions {
+    margin-bottom: 20px;
+}
+p-table {
+    width: 100%;
+}
