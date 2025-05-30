@@ -1,84 +1,192 @@
-<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
-    <h2 style="margin-bottom: 20px;">Liste des utilisateurs AWS</h2>
-    <div style="margin-bottom: 20px;">
-        <button pButton label="Ajouter un utilisateur" (click)="showAddUserDialog()"></button>
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+    <style>
+        .card-container { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .card { background: #4A90E2; color: white; padding: 15px; border-radius: 10px; width: 200px; text-align: center; }
+        .charts-container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .chart-row { display: flex; gap: 20px; flex-wrap: wrap; width: 100%; }
+        .chart-card { background: #E6F0FA; padding: 15px; border-radius: 10px; flex: 1; min-width: 0; width: 0; box-sizing: border-box; }
+        .chart-card canvas { width: 100% !important; height: auto !important; }
+        .table-card { background: #E6F0FA; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 20px; }
+        .info-card { background: #E6F0FA; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 20px; text-align: center; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #D3E3F5; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .loading { text-align: center; padding: 20px; }
+        .error { color: red; padding: 20px; }
+        .filter-section { margin-bottom: 20px; padding: 10px; background: #F5F5F5; border-radius: 5px; display: flex; gap: 20px; align-items: center; }
+        .p-multiselect { width: 200px; }
+    </style>
+
+    <h2 style="margin-bottom: 20px; font-size: 24px;">FinOps Overview (Updated: {{ currentDate | date:'yyyy-MM-dd HH:mm:ss z' }})</h2>
+
+    <!-- Gestion des erreurs et chargement -->
+    <div class="loading" *ngIf="loading">
+        <p>Loading data...</p>
     </div>
-    <p-table [value]="users" [tableStyle]="{ 'min-width': '50rem' }">
-        <ng-template pTemplate="header">
-            <tr>
-                <th>ID</th>
-                <th>ARN</th>
-                <th>Access Key ID</th>
-                <th>Date d'ajout</th>
-                <th>Actions</th>
-            </tr>
-        </ng-template>
-        <ng-template pTemplate="body" let-user>
-            <tr>
-                <td>{{ user.id }}</td>
-                <td>{{ user.arn }}</td>
-                <td>{{ user.access_key_id }}</td>
-                <td>{{ user.created_at }}</td>
-                <td>
-                    <button
-                        pButton
-                        type="button"
-                        label=""
-                        class="p-button-danger p-button-lg"
-                        icon="pi pi-trash"
-                        (click)="confirmDeleteUser(user.id)"
-                    ></button>
-                </td>
-            </tr>
-        </ng-template>
-        <ng-template pTemplate="emptymessage">
-            <tr>
-                <td colspan="5">Aucun utilisateur trouvé.</td>
-            </tr>
-        </ng-template>
-    </p-table>
-    <p-dialog
-        header="Ajouter un utilisateur AWS"
-        [(visible)]="displayAddUserDialog"
-        [modal]="true"
-        [style]="{ width: '30rem' }"
-        [draggable]="false"
-        [resizable]="false"
-    >
-        <form (ngSubmit)="addUser()">
-            <div style="margin-bottom: 20px;">
-                <label for="access_key_id" style="display: block; margin-bottom: 5px;">Access Key ID</label>
-                <input
-                    id="access_key_id"
-                    type="text"
-                    pInputText
-                    [(ngModel)]="newUser.access_key_id"
-                    name="access_key_id"
-                    style="width: 100%; padding: 8px;"
-                    required
-                />
+    <div class="error" *ngIf="errorMessage">
+        <p>Error: {{ errorMessage }}</p>
+    </div>
+
+    <!-- Liste des utilisateurs -->
+    <div style="margin-bottom: 40px;">
+        <h2 style="margin-bottom: 20px; font-size: 24px;">List of AWS Users</h2>
+        <div style="margin-bottom: 20px;">
+            <button pButton label="Add User" (click)="showAddUserDialog()" style="padding: 8px 16px; font-size: 14px;"></button>
+        </div>
+        <p-table [value]="users" [tableStyle]="{ 'min-width': '50rem' }">
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>ID</th>
+                    <th>ARN</th>
+                    <th>Access Key ID</th>
+                    <th>Created At</th>
+                    <th>Actions</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-user>
+                <tr>
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.arn }}</td>
+                    <td>{{ user.access_key_id }}</td>
+                    <td>{{ user.created_at }}</td>
+                    <td>
+                        <button
+                            pButton
+                            type="button"
+                            label=""
+                            class="p-button-danger p-button-lg"
+                            icon="pi pi-trash"
+                            (click)="confirmDeleteUser(user.id)"
+                            style="padding: 5px;"
+                        ></button>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="5">No users found.</td>
+                </tr>
+            </ng-template>
+        </p-table>
+        <p-dialog
+            header="Add AWS User"
+            [(visible)]="displayAddUserDialog"
+            [modal]="true"
+            [style]="{ width: '30rem' }"
+            [draggable]="false"
+            [resizable]="false"
+        >
+            <form (ngSubmit)="addUser()">
+                <div style="margin-bottom: 20px;">
+                    <label for="access_key_id" style="display: block; margin-bottom: 5px;">Access Key ID</label>
+                    <input
+                        id="access_key_id"
+                        type="text"
+                        pInputText
+                        [(ngModel)]="newUser.access_key_id"
+                        name="access_key_id"
+                        style="width: 100%; padding: 8px; font-size: 14px;"
+                        required
+                    />
+                </div>
+                <div style="margin-bottom: 20px;">
+                    <label for="secret_access_key" style="display: block; margin-bottom: 5px;">Secret Access Key</label>
+                    <input
+                        id="secret_access_key"
+                        type="password"
+                        pInputText
+                        [(ngModel)]="newUser.secret_access_key"
+                        name="secret_access_key"
+                        style="width: 100%; padding: 8px; font-size: 14px;"
+                        required
+                    />
+                </div>
+                <button
+                    pButton
+                    type="submit"
+                    label="Add"
+                    [disabled]="!newUser.access_key_id || !newUser.secret_access_key"
+                    style="width: 100%; padding: 8px; font-size: 14px;"
+                ></button>
+            </form>
+        </p-dialog>
+        <p-toast></p-toast>
+        <p-confirmDialog></p-confirmDialog>
+    </div>
+
+    <!-- Filtres par région et utilisateur -->
+    <div class="filter-section">
+        <h3>Filters</h3>
+        <div>
+            <label>Region</label>
+            <p-multiSelect
+                [options]="availableRegions"
+                [(ngModel)]="selectedRegions"
+                (onChange)="onFilterChange()"
+                placeholder="Select regions"
+                optionLabel="label"
+                optionValue="value"
+                [showToggleAll]="true"
+                [style]="{'width': '200px'}"
+            ></p-multiSelect>
+        </div>
+        <div>
+            <label>User</label>
+            <p-multiSelect
+                [options]="availableUserIds"
+                [(ngModel)]="selectedUserIds"
+                (onChange)="onFilterChange()"
+                placeholder="Select users"
+                optionLabel="label"
+                optionValue="value"
+                [showToggleAll]="true"
+                [style]="{'width': '200px'}"
+            ></p-multiSelect>
+        </div>
+    </div>
+
+    <!-- Cartes -->
+    <div class="card-container" *ngIf="!loading && !errorMessage">
+        <div class="card" *ngFor="let month of finOpsData.monthly_costs">
+            <h3 style="margin: 0; font-size: 16px;">{{ month.month }} Cost (USD)</h3>
+            <p style="margin: 5px 0; font-size: 18px;">{{ month.cost | number:'1.2-2' }}</p>
+        </div>
+        <div class="card" style="background: #50C878;">
+            <h3 style="margin: 0; font-size: 16px;">Forecast Cost (USD)</h3>
+            <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData.forecast_cost | number:'1.2-2' }}</p>
+        </div>
+        <div class="card" style="background: #AB47BC;">
+            <h3 style="margin: 0; font-size: 16px;">Number of Budgets</h3>
+            <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData.budget_count }}</p>
+        </div>
+    </div>
+
+    <!-- Graphiques sur la même ligne -->
+    <div class="charts-container" *ngIf="!loading && !errorMessage">
+        <div class="chart-row">
+            <div class="chart-card">
+                <canvas baseChart [data]="costTrendData" [type]="barChartType" [options]="costTrendOptions"></canvas>
             </div>
-            <div style="margin-bottom: 20px;">
-                <label for="secret_access_key" style="display: block; margin-bottom: 5px;">Secret Access Key</label>
-                <input
-                    id="secret_access_key"
-                    type="password"
-                    pInputText
-                    [(ngModel)]="newUser.secret_access_key"
-                    name="secret_access_key"
-                    style="width: 100%; padding: 8px;"
-                    required
-                />
+            <div class="chart-card">
+                <canvas baseChart [data]="resourcesChartData" [type]="resourcesChartType" [options]="resourcesChartOptions"></canvas>
             </div>
-            <button
-                pButton
-                type="submit"
-                label="Ajouter"
-                [disabled]="!newUser.access_key_id || !newUser.secret_access_key"
-                style="width: 100%;"
-            ></button>
-        </form>
-    </p-dialog>
-    <p-toast></p-toast>
-    <p-confirmDialog></p-confirmDialog>
+        </div>
+    </div>
+
+    <div class="charts-container" *ngIf="!loading && !errorMessage">
+        <div class="chart-card">
+            <canvas baseChart [data]="budgetChartData" [type]="budgetChartType" [options]="budgetChartOptions"></canvas>
+        </div>
+    </div>
+
+    <div class="info-card" *ngIf="!loading && !errorMessage">
+        <h3 style="margin-bottom: 10px; font-size: 20px;">Number of Under-Utilized EC2 Instances (CPU < 10%)</h3>
+        <p style="margin: 5px 0; font-size: 18px;">Total: {{ finOpsData.under_utilized_instances.length }}</p>
+    </div>
+
+    <div class="charts-container" *ngIf="!loading && !errorMessage">
+        <div class="chart-card">
+            <canvas baseChart [data]="underUtilizedChartData" [type]="underUtilizedChartType" [options]="underUtilizedChartOptions"></canvas>
+        </div>
+    </div>
 </div>

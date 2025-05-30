@@ -1,0 +1,64 @@
+.dashboard-container {
+    padding: 20px;
+    font-family: Arial, sans-serif;
+}
+
+.stats-cards {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.stat-card {
+    flex: 1;
+    min-width: 220px;
+    margin: 10px;
+    padding: 20px;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.stat-card.purple { background-color: #6a0dad; }
+.stat-card.green { background-color: #28a745; }
+.stat-card.blue { background-color: #007bff; }
+.stat-card.orange { background-color: #fd7e14; }
+
+.charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+}
+
+.chart-card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+.chart-card h4 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #333;
+}
+
+.budget-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.budget-table th, .budget-table td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    text-align: left;
+}
+
+.budget-table th {
+    background-color: #f5f5f5;
+}

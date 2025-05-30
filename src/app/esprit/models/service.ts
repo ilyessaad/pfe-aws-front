@@ -1,9 +1,8 @@
 export interface Service {
-    _id: string;
-    nom?: string;
-    description?: string;
-    image?: string;
-    subDesc?: string[];
-  }
-  
-  
+    user_id: number;
+    region: string;
+    service_name: string;
+    resource_id: string;
+    data: any;
+    timestamp: string;
+}

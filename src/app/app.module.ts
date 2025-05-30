@@ -14,6 +14,9 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { AppLayoutModule } from './layout/app.layout.module';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { NgChartsModule } from 'ng2-charts';
+
+
 
 
 import { AppLayoutComponent } from './layout/app.layout.component';
@@ -46,7 +49,8 @@ import {AppConfigModule} from "./layout/config/config.module";
         AppLayoutModule,
         TableModule,
         DialogModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        NgChartsModule
     ],
     providers: [],
     bootstrap: [AppComponent]

@@ -26,8 +26,9 @@ import {ConfirmDialogModule} from "primeng/confirmdialog";
         DashboardsRoutingModule,
         ToastModule,
         DialogModule,
-        ConfirmDialogModule
+        ConfirmDialogModule,
+        DashboardComponent
     ],
-    declarations: [DashboardComponent]
+    declarations: []
 })
 export class DashboardModule { }
