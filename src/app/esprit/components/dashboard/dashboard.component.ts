@@ -14,6 +14,7 @@ import { DialogModule } from 'primeng/dialog';
 import { TableModule } from 'primeng/table';
 import { HttpParams } from '@angular/common/http';
 import { MultiSelectModule } from 'primeng/multiselect';
+import { TabViewModule } from 'primeng/tabview';
 
 @Component({
     selector: 'app-dashboard',
@@ -21,7 +22,7 @@ import { MultiSelectModule } from 'primeng/multiselect';
     styleUrls: [],
     providers: [MessageService, ConfirmationService],
     standalone: true,
-    imports: [NgChartsModule, CommonModule, ConfirmDialogModule, ToastModule, FormsModule, DialogModule, TableModule, MultiSelectModule]
+    imports: [NgChartsModule, CommonModule, ConfirmDialogModule, ToastModule, FormsModule, DialogModule, TableModule, MultiSelectModule, TabViewModule]
 })
 export class DashboardComponent implements OnInit {
     users: AwsUser[] = [];
@@ -51,55 +52,31 @@ export class DashboardComponent implements OnInit {
     availableRegions: { label: string, value: string }[] = [];
     availableUserIds: { label: string, value: string }[] = [];
 
-    // Graphique de coût des services (Top 5 services du mois courant)
+    // Graphiques
     barChartType: ChartType = 'bar';
     costTrendOptions: ChartOptions<'bar'> = {
-        scales: {
-            y: { beginAtZero: true, title: { display: true, text: 'Cost (USD)' } },
-            x: { title: { display: true, text: 'Service' } }
-        },
-        plugins: {
-            legend: { display: false },
-            title: { display: true, text: '' }
-        }
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Cost (USD)' } }, x: { title: { display: true, text: 'Service' } } },
+        plugins: { legend: { display: false }, title: { display: true, text: '' } }
     };
     costTrendData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-    // Graphique Budget Utilization (Top 5 budgets)
     budgetChartType: ChartType = 'bar';
     budgetChartOptions: ChartOptions<'bar'> = {
-        scales: {
-            y: { beginAtZero: true, title: { display: true, text: 'Amount (USD)' } },
-            x: { title: { display: true, text: 'Budget' } }
-        },
-        plugins: {
-            legend: { position: 'top' },
-            title: { display: true, text: '' }
-        }
+        scales: { y: { beginAtZero: true, title: { display: true, text: 'Amount (USD)' } }, x: { title: { display: true, text: 'Budget' } } },
+        plugins: { legend: { position: 'top' }, title: { display: true, text: '' } }
     };
     budgetChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-    // Graphique Under-Utilized Instances (Line Chart)
     underUtilizedChartType: ChartType = 'line';
     underUtilizedChartOptions: ChartOptions<'line'> = {
-        scales: {
-            y: { beginAtZero: true, max: 10, title: { display: true, text: 'CPU Utilization (%)' } },
-            x: { title: { display: true, text: 'Instance ID' } }
-        },
-        plugins: {
-            legend: { position: 'top' },
-            title: { display: true, text: '' }
-        }
+        scales: { y: { beginAtZero: true, max: 10, title: { display: true, text: 'CPU Utilization (%)' } }, x: { title: { display: true, text: 'Instance ID' } } },
+        plugins: { legend: { position: 'top' }, title: { display: true, text: '' } }
     };
     underUtilizedChartData: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
 
-    // Graphique Resources by Service (Pie Chart)
     resourcesChartType: ChartType = 'pie';
     resourcesChartOptions: ChartOptions<'pie'> = {
-        plugins: {
-            legend: { position: 'right' },
-            title: { display: true, text: '' }
-        }
+        plugins: { legend: { position: 'right' }, title: { display: true, text: '' } }
     };
     resourcesChartData: ChartConfiguration<'pie'>['data'] = { labels: [], datasets: [] };
 
@@ -111,31 +88,50 @@ export class DashboardComponent implements OnInit {
     ) {}
 
     ngOnInit(): void {
-        this.loadUsers();
-        this.loadFinOpsData();
+        this.loadUsersAndInitialize();
     }
 
-    loadUsers(): void {
+    loadUsersAndInitialize(): void {
         this.userService.getUsers().subscribe({
             next: (users) => {
                 this.users = users;
                 this.availableUserIds = [
                     { label: 'All', value: 'all' },
                     ...users.map((user) => {
-                        // Extract the user name from ARN (e.g., arn:aws:iam::123456789012:user/Ilyes_SAAD_stagiaire)
                         const arnParts = user.arn.split('/');
                         const userName = arnParts.length > 1 ? arnParts[1] : user.arn;
                         return { label: userName, value: user.access_key_id };
                     })
                 ];
-                this.loadAvailableRegions();
+                if (this.users.length > 0) {
+                    this.selectedUserIds = [this.users[0].access_key_id];
+                }
+                this.finOpsService.getServices().subscribe({
+                    next: (services) => {
+                        const regions = [...new Set(services.map((service: any) => service.region || 'Unknown'))].filter(region => region !== 'Unknown');
+                        this.availableRegions = [
+                            { label: 'All', value: 'all' },
+                            ...regions.map((region: string) => ({ label: region, value: region }))
+                        ];
+                        this.loadFinOpsData();
+                    },
+                    error: (error) => {
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Error',
+                            detail: 'Failed to load regions: ' + error.message
+                        });
+                        this.loadFinOpsData();
+                    }
+                });
             },
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error', // Updated to English
+                    summary: 'Error',
                     detail: error.message
                 });
+                this.loadFinOpsData();
             }
         });
     }
@@ -152,8 +148,8 @@ export class DashboardComponent implements OnInit {
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error', // Updated to English
-                    detail: 'Failed to load regions: ' + error.message // Updated to English
+                    summary: 'Error',
+                    detail: 'Failed to load regions: ' + error.message
                 });
             }
         });
@@ -200,78 +196,82 @@ export class DashboardComponent implements OnInit {
             ? this.selectedUserIds.join(', ')
             : 'All Users';
 
-        this.costTrendOptions.plugins!.title!.text = `Top 5 Services by Cost (${this.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}) - ${regionsText} - ${usersText}`;
-        this.budgetChartOptions.plugins!.title!.text = `Top 5 Budgets (Closest to Limit) - ${usersText}`;
-        this.underUtilizedChartOptions.plugins!.title!.text = `Under-Utilized EC2 Instances (CPU < 10%) - ${regionsText} - ${usersText}`;
-        this.resourcesChartOptions.plugins!.title!.text = `Resources by Service - ${usersText}`;
+        if (this.finOpsData && this.finOpsData.global) {
+            const data = this.finOpsData.global;
 
-        this.costTrendData = {
-            labels: this.finOpsData.cost_trend.map((trend: any) => trend.service),
-            datasets: [
-                {
-                    label: 'Cost (USD)',
-                    data: this.finOpsData.cost_trend.map((trend: any) => trend.cost),
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                }
-            ]
-        };
+            this.costTrendOptions.plugins!.title!.text = `Top 5 Services by Cost (${this.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}) - ${regionsText} - ${usersText}`;
+            this.budgetChartOptions.plugins!.title!.text = `Top 5 Budgets (Closest to Limit) - ${usersText}`;
+            this.underUtilizedChartOptions.plugins!.title!.text = `Under-Utilized EC2 Instances (CPU < 10%) - ${regionsText} - ${usersText}`;
+            this.resourcesChartOptions.plugins!.title!.text = `Resources by Service - ${usersText}`;
 
-        this.budgetChartData = {
-            labels: this.finOpsData.budget_data.map((budget: any) => budget.budget_name),
-            datasets: [
-                {
-                    label: 'Budget Limit (USD)',
-                    data: this.finOpsData.budget_data.map((budget: any) => budget.budget_limit),
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                },
-                {
-                    label: 'Actual Spend (USD)',
-                    data: this.finOpsData.budget_data.map((budget: any) => budget.actual_spend),
-                    backgroundColor: 'rgba(255, 99, 132, 0.6)',
-                }
-            ]
-        };
+            this.costTrendData = {
+                labels: data.cost_trend.map((trend: any) => trend.service),
+                datasets: [{ label: 'Cost (USD)', data: data.cost_trend.map((trend: any) => trend.cost), backgroundColor: 'rgba(75, 192, 192, 0.6)' }]
+            };
 
-        this.underUtilizedChartData = {
-            labels: this.finOpsData.under_utilized_instances.map((instance: any) => instance.instance_id),
-            datasets: [
-                {
-                    label: 'Average CPU Utilization (%)',
-                    data: this.finOpsData.under_utilized_instances.map((instance: any) => instance.avg_cpu),
-                    fill: false,
-                    borderColor: 'rgba(153, 102, 255, 0.6)',
-                    tension: 0.1
-                }
-            ]
-        };
+            this.budgetChartData = {
+                labels: data.budget_data.map((budget: any) => budget.budget_name),
+                datasets: [
+                    { label: 'Budget Limit (USD)', data: data.budget_data.map((budget: any) => budget.budget_limit), backgroundColor: 'rgba(75, 192, 192, 0.6)' },
+                    { label: 'Actual Spend (USD)', data: data.budget_data.map((budget: any) => budget.actual_spend), backgroundColor: 'rgba(255, 99, 132, 0.6)' }
+                ]
+            };
 
-        this.resourcesChartData = {
-            labels: this.finOpsData.resources_by_service.map((service: any) => service.service),
-            datasets: [
-                {
-                    data: this.finOpsData.resources_by_service.map((service: any) => service.count),
-                    backgroundColor: [
-                        '#FF6384',
-                        '#36A2EB',
-                        '#FFCE56',
-                        '#4BC0C0',
-                        '#9966FF',
-                        '#FF9F40',
-                        '#C9CBCF'
-                    ],
-                    borderColor: [
-                        '#FF4066',
-                        '#1E7ACF',
-                        '#E6B800',
-                        '#3DA8A8',
-                        '#7D4DE0',
-                        '#FF751A',
-                        '#A6A9B0'
-                    ],
+            this.underUtilizedChartData = {
+                labels: data.under_utilized_instances.map((instance: any) => instance.instance_id),
+                datasets: [{ label: 'Average CPU Utilization (%)', data: data.under_utilized_instances.map((instance: any) => instance.avg_cpu), fill: false, borderColor: 'rgba(153, 102, 255, 0.6)', tension: 0.1 }]
+            };
+
+            this.resourcesChartData = {
+                labels: data.resources_by_service.map((service: any) => service.service),
+                datasets: [{
+                    data: data.resources_by_service.map((service: any) => service.count),
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'],
+                    borderColor: ['#FF4066', '#1E7ACF', '#E6B800', '#3DA8A8', '#7D4DE0', '#FF751A', '#A6A9B0'],
                     borderWidth: 1
-                }
-            ]
-        };
+                }]
+            };
+        } else if (this.finOpsData && this.selectedUserIds.length > 0) {
+            // Pour chaque utilisateur sélectionné, mettre à jour les données de graphique localement
+            const userId = this.selectedUserIds[0]; // Pour simplifier, prenons le premier utilisateur sélectionné (à adapter si nécessaire)
+            if (this.finOpsData[userId]) {
+                const data = this.finOpsData[userId];
+                const userName = this.users.find(u => u.access_key_id === userId)?.arn.split('/')[1] || userId;
+
+                this.costTrendOptions.plugins!.title!.text = `Top 5 Services by Cost (${this.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}) - ${userName} - ${regionsText}`;
+                this.budgetChartOptions.plugins!.title!.text = `Top 5 Budgets (Closest to Limit) - ${userName}`;
+                this.underUtilizedChartOptions.plugins!.title!.text = `Under-Utilized EC2 Instances (CPU < 10%) - ${userName} - ${regionsText}`;
+                this.resourcesChartOptions.plugins!.title!.text = `Resources by Service - ${userName}`;
+
+                this.costTrendData = {
+                    labels: data.cost_trend.map((trend: any) => trend.service),
+                    datasets: [{ label: 'Cost (USD)', data: data.cost_trend.map((trend: any) => trend.cost), backgroundColor: 'rgba(75, 192, 192, 0.6)' }]
+                };
+
+                this.budgetChartData = {
+                    labels: data.budget_data.map((budget: any) => budget.budget_name),
+                    datasets: [
+                        { label: 'Budget Limit (USD)', data: data.budget_data.map((budget: any) => budget.budget_limit), backgroundColor: 'rgba(75, 192, 192, 0.6)' },
+                        { label: 'Actual Spend (USD)', data: data.budget_data.map((budget: any) => budget.actual_spend), backgroundColor: 'rgba(255, 99, 132, 0.6)' }
+                    ]
+                };
+
+                this.underUtilizedChartData = {
+                    labels: data.under_utilized_instances.map((instance: any) => instance.instance_id),
+                    datasets: [{ label: 'Average CPU Utilization (%)', data: data.under_utilized_instances.map((instance: any) => instance.avg_cpu), fill: false, borderColor: 'rgba(153, 102, 255, 0.6)', tension: 0.1 }]
+                };
+
+                this.resourcesChartData = {
+                    labels: data.resources_by_service.map((service: any) => service.service),
+                    datasets: [{
+                        data: data.resources_by_service.map((service: any) => service.count),
+                        backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'],
+                        borderColor: ['#FF4066', '#1E7ACF', '#E6B800', '#3DA8A8', '#7D4DE0', '#FF751A', '#A6A9B0'],
+                        borderWidth: 1
+                    }]
+                };
+            }
+        }
     }
 
     onFilterChange(): void {
@@ -288,16 +288,16 @@ export class DashboardComponent implements OnInit {
             next: (response) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success', // Updated to English
+                    summary: 'Success',
                     detail: response.message
                 });
                 this.displayAddUserDialog = false;
-                this.loadUsers();
+                this.loadUsersAndInitialize();
             },
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error', // Updated to English
+                    summary: 'Error',
                     detail: error.message
                 });
             }
@@ -306,11 +306,11 @@ export class DashboardComponent implements OnInit {
 
     confirmDeleteUser(userId: number): void {
         this.confirmationService.confirm({
-            message: 'Are you sure you want to delete this user?', // Updated to English
-            header: 'Delete Confirmation', // Updated to English
+            message: 'Are you sure you want to delete this user?',
+            header: 'Delete Confirmation',
             icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Yes', // Updated to English
-            rejectLabel: 'No', // Updated to English
+            acceptLabel: 'Yes',
+            rejectLabel: 'No',
             accept: () => {
                 this.deleteUser(userId);
             }
@@ -322,15 +322,15 @@ export class DashboardComponent implements OnInit {
             next: (response) => {
                 this.messageService.add({
                     severity: 'success',
-                    summary: 'Success', // Updated to English
+                    summary: 'Success',
                     detail: response.message
                 });
-                this.loadUsers();
+                this.loadUsersAndInitialize();
             },
             error: (error) => {
                 this.messageService.add({
                     severity: 'error',
-                    summary: 'Error', // Updated to English
+                    summary: 'Error',
                     detail: error.message
                 });
             }

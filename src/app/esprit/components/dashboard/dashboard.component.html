@@ -145,48 +145,98 @@
         </div>
     </div>
 
-    <!-- Cartes -->
-    <div class="card-container" *ngIf="!loading && !errorMessage">
-        <div class="card" *ngFor="let month of finOpsData.monthly_costs">
-            <h3 style="margin: 0; font-size: 16px;">{{ month.month }} Cost (USD)</h3>
-            <p style="margin: 5px 0; font-size: 18px;">{{ month.cost | number:'1.2-2' }}</p>
-        </div>
-        <div class="card" style="background: #50C878;">
-            <h3 style="margin: 0; font-size: 16px;">Forecast Cost (USD)</h3>
-            <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData.forecast_cost | number:'1.2-2' }}</p>
-        </div>
-        <div class="card" style="background: #AB47BC;">
-            <h3 style="margin: 0; font-size: 16px;">Number of Budgets</h3>
-            <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData.budget_count }}</p>
-        </div>
-    </div>
-
-    <!-- Graphiques sur la même ligne -->
-    <div class="charts-container" *ngIf="!loading && !errorMessage">
-        <div class="chart-row">
-            <div class="chart-card">
-                <canvas baseChart [data]="costTrendData" [type]="barChartType" [options]="costTrendOptions"></canvas>
+    <!-- Affichage des données -->
+    <div *ngIf="!loading && !errorMessage">
+        <!-- Si un seul utilisateur ou vue globale -->
+        <div *ngIf="finOpsData && finOpsData.global">
+            <div class="card-container">
+                <div class="card" *ngFor="let month of finOpsData.global.monthly_costs">
+                    <h3 style="margin: 0; font-size: 16px;">{{ month.month }} Cost (USD)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ month.cost | number:'1.2-2' }}</p>
+                </div>
+                <div class="card" style="background: #50C878;">
+                    <h3 style="margin: 0; font-size: 16px;">Forecast Cost (USD)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData.global.forecast_cost | number:'1.2-2' }}</p>
+                </div>
+                <div class="card" style="background: #AB47BC;">
+                    <h3 style="margin: 0; font-size: 16px;">Number of Budgets</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData.global.budget_count }}</p>
+                </div>
             </div>
-            <div class="chart-card">
-                <canvas baseChart [data]="resourcesChartData" [type]="resourcesChartType" [options]="resourcesChartOptions"></canvas>
+
+            <div class="charts-container">
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="costTrendData" [type]="barChartType" [options]="costTrendOptions"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas baseChart [data]="resourcesChartData" [type]="resourcesChartType" [options]="resourcesChartOptions"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <canvas baseChart [data]="budgetChartData" [type]="budgetChartType" [options]="budgetChartOptions"></canvas>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3 style="margin-bottom: 10px; font-size: 20px;">Number of Under-Utilized EC2 Instances (CPU < 10%)</h3>
+                <p style="margin: 5px 0; font-size: 18px;">Total: {{ finOpsData.global.under_utilized_instances.length }}</p>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <canvas baseChart [data]="underUtilizedChartData" [type]="underUtilizedChartType" [options]="underUtilizedChartOptions"></canvas>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="charts-container" *ngIf="!loading && !errorMessage">
-        <div class="chart-card">
-            <canvas baseChart [data]="budgetChartData" [type]="budgetChartType" [options]="budgetChartOptions"></canvas>
-        </div>
-    </div>
+        <!-- Si plusieurs utilisateurs, afficher les données du premier utilisateur sélectionné -->
+        <div *ngIf="finOpsData && selectedUserIds.length > 0 && !finOpsData.global">
+            <div class="card-container">
+                <div class="card" *ngFor="let month of finOpsData[selectedUserIds[0]].monthly_costs">
+                    <h3 style="margin: 0; font-size: 16px;">{{ month.month }} Cost (USD)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ month.cost | number:'1.2-2' }}</p>
+                </div>
+                <div class="card" style="background: #50C878;">
+                    <h3 style="margin: 0; font-size: 16px;">Forecast Cost (USD)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData[selectedUserIds[0]].forecast_cost | number:'1.2-2' }}</p>
+                </div>
+                <div class="card" style="background: #AB47BC;">
+                    <h3 style="margin: 0; font-size: 16px;">Number of Budgets</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData[selectedUserIds[0]].budget_count }}</p>
+                </div>
+            </div>
 
-    <div class="info-card" *ngIf="!loading && !errorMessage">
-        <h3 style="margin-bottom: 10px; font-size: 20px;">Number of Under-Utilized EC2 Instances (CPU < 10%)</h3>
-        <p style="margin: 5px 0; font-size: 18px;">Total: {{ finOpsData.under_utilized_instances.length }}</p>
-    </div>
+            <div class="charts-container">
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="costTrendData" [type]="barChartType" [options]="costTrendOptions"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas baseChart [data]="resourcesChartData" [type]="resourcesChartType" [options]="resourcesChartOptions"></canvas>
+                    </div>
+                </div>
+            </div>
 
-    <div class="charts-container" *ngIf="!loading && !errorMessage">
-        <div class="chart-card">
-            <canvas baseChart [data]="underUtilizedChartData" [type]="underUtilizedChartType" [options]="underUtilizedChartOptions"></canvas>
+            <div class="charts-container">
+                <div class="chart-card">
+                    <canvas baseChart [data]="budgetChartData" [type]="budgetChartType" [options]="budgetChartOptions"></canvas>
+                </div>
+            </div>
+
+            <div class="info-card">
+                <h3 style="margin-bottom: 10px; font-size: 20px;">Number of Under-Utilized EC2 Instances (CPU < 10%)</h3>
+                <p style="margin: 5px 0; font-size: 18px;">Total: {{ finOpsData[selectedUserIds[0]].under_utilized_instances.length }}</p>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-card">
+                    <canvas baseChart [data]="underUtilizedChartData" [type]="underUtilizedChartType" [options]="underUtilizedChartOptions"></canvas>
+                </div>
+            </div>
         </div>
     </div>
 </div>

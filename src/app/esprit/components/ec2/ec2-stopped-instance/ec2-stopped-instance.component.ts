@@ -2,7 +2,13 @@ import { Component, Input, OnInit } from '@angular/core';
 import { ChartConfiguration, ChartType, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { NgForOf } from '@angular/common';
-import { Anomaly, AnomalyService } from '../../../service/anomaly.service';
+import {
+    Anomaly,
+    AnomalyService,
+    AnomalyResponse,
+    AnomalyErrorResponse,
+    AnomalySuccessResponse
+} from '../../../service/anomaly.service';
 
 @Component({
     selector: 'app-ec2-stopped-instance',
@@ -11,14 +17,12 @@ import { Anomaly, AnomalyService } from '../../../service/anomaly.service';
     imports: [NgChartsModule, NgForOf],
     styleUrls: ['./ec2-stopped-instance.component.scss']
 })
-
 export class Ec2StoppedInstanceComponent implements OnInit {
     @Input() anomalyName: string = 'AWS EC2 Instances Running in Stopped State for Too Long';
     anomalies: Anomaly[] = [];
     errorMessage: string = '';
     loading: boolean = false;
     selectedInstance: Anomaly | null = null;
-
 
     constructor(private anomalyService: AnomalyService) {}
 
@@ -33,9 +37,14 @@ export class Ec2StoppedInstanceComponent implements OnInit {
     loadAnomalies(): void {
         this.loading = true;
         this.anomalyService.getAnomalies(this.anomalyName).subscribe({
-            next: (response) => {
-                this.anomalies = response.data;
-                this.updateChartData();
+            next: (response: AnomalyResponse) => {
+                if (response.status === 'success') {
+                    this.anomalies = (response as AnomalySuccessResponse).data; // Safely access data
+                    this.updateChartData();
+                } else {
+                    const errorResponse = response as AnomalyErrorResponse;
+                    this.errorMessage = errorResponse.message;
+                }
                 this.loading = false;
             },
             error: (error) => {

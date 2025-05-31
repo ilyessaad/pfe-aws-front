@@ -4,17 +4,32 @@ import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
-// Interface pour représenter une anomalie (basée sur la structure de votre table anomalies)
+// Interface pour représenter une anomalie
 export interface Anomaly {
     id: number;
     user_id: number;
     region: string;
     anomaly_name: string;
-    details: any; // Les détails sont un objet JSON
+    details: any;
     resource_id: string;
     alert: string;
     timestamp: string;
 }
+
+// Interface pour la réponse de succès
+export interface AnomalySuccessResponse {
+    data: Anomaly[];
+    status: 'success';
+}
+
+// Interface pour la réponse d'erreur
+export interface AnomalyErrorResponse {
+    message: string;
+    status: 'error';
+}
+
+// Union type pour la réponse
+export type AnomalyResponse = AnomalySuccessResponse | AnomalyErrorResponse;
 
 @Injectable({
     providedIn: 'root'
@@ -24,9 +39,9 @@ export class AnomalyService {
 
     constructor(private http: HttpClient) {}
 
-    getAnomalies(anomalyName: string): Observable<{ data: Anomaly[]; status: string }> {
+    getAnomalies(anomalyName: string): Observable<AnomalyResponse> {
         const url = `${this.apiUrl}?anomaly_name=${encodeURIComponent(anomalyName)}`;
-        return this.http.get<{ data: Anomaly[]; status: string }>(url).pipe(
+        return this.http.get<AnomalyResponse>(url).pipe(
             catchError(this.handleError)
         );
     }
