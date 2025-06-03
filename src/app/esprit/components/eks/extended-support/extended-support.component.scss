@@ -1,0 +1,18 @@
+/* Additional styles specific to extended-support component */
+.dropdown-container {
+    .p-multiselect {
+        width: 100%;
+        max-width: 14rem;
+    }
+}
+
+.card-container {
+    .card {
+        margin: 5px 0;
+    }
+}
+
+/* Utility to iterate over object keys in template */
+:host {
+    display: block;
+}

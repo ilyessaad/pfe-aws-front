@@ -24,12 +24,12 @@ export class AppMenuComponent implements OnInit {
             },
 
             {
-                label: 'Pages',
+                label: 'Anomalies',
                 icon: 'pi pi-fw pi-briefcase',
                 items: [
                     {
                         label: 'EC2',
-                        icon: 'pi pi-fw pi-user',
+                       // icon: 'pi pi-fw pi-user',
                         items: [
                             {
                                 label: 'ec2 stopped instance',

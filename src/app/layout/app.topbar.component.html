@@ -1,26 +1,118 @@
-
-<div class="layout-topbar">
-    <a class="layout-topbar-logo" routerLink="">
-        <img src="assets/img/vermeg.png" alt="logo" style="width: 200px; height: 200px">
-    </a>
-
-    <button #menubutton class="p-link layout-menu-button layout-topbar-button" (click)="layoutService.onMenuToggle()">
-        <i class="pi pi-bars"></i>
-    </button>
-
-    <button #topbarmenubutton class="p-link layout-topbar-menu-button layout-topbar-button" (click)="layoutService.showProfileSidebar()">
-        <i class="pi pi-ellipsis-v"></i>
-    </button>
-
-    <div #topbarmenu class="layout-topbar-menu" [ngClass]="{'layout-topbar-menu-mobile-active': layoutService.state.profileSidebarVisible}">
-
-
-
-        <button *ngIf="(loggedIn$ | async)" class="p-link layout-topbar-button" (click)="logout()">
-            <i class="pi pi-power-off"></i>
-            <span>Se déconnecter</span>
+<div class="layout-topbar" style="position: fixed; top: 0; left: 0; width: 100%; height: 70px; background-color: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 1000; display: flex; align-items: center; padding: 0 20px; justify-content: space-between;">
+    <!-- Partie gauche avec bouton menu et logo -->
+    <div style="display: flex; align-items: center;">
+        <button #menubutton class="p-link layout-menu-button layout-topbar-button"
+                style="background: none; border: none; cursor: pointer; margin-right: 15px;"
+                (click)="layoutService.onMenuToggle()">
+            <i class="pi pi-bars" style="font-size: 1.5rem;"></i>
         </button>
 
+        <a class="layout-topbar-logo"  style="display: flex; align-items: center; text-decoration: none;">
+            <img src="assets/img/vermeg.png" alt="logo" style="width: 200px; height: 200px; object-fit: contain;">
+        </a>
+    </div>
 
+    <!-- Partie droite avec autres boutons -->
+    <div style="display: flex; align-items: center;">
+        <div #topbarmenu class="layout-topbar-menu"
+             style="display: flex;"
+             [ngClass]="{'layout-topbar-menu-mobile-active': layoutService.state.profileSidebarVisible}">
+
+            <!-- Bouton de notification -->
+            <button *ngIf="(loggedIn$ | async)" class="p-link layout-topbar-button"
+                    style="background: none; border: none; cursor: pointer; position: relative; margin-right: 15px;"
+                    (click)="toggleNotificationPanel()">
+                <i class="pi pi-bell" style="font-size: 1.5rem;"></i>
+                <span *ngIf="unreadAnomaliesCount > 0"
+                      style="position: absolute; top: 0; right: 0; background-color: #f44336; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; transform: translate(25%, -25%);">
+                    {{unreadAnomaliesCount}}
+                </span>
+            </button>
+
+            <button #topbarmenubutton class="p-link layout-topbar-menu-button layout-topbar-button"
+                    style="background: none; border: none; cursor: pointer; margin-right: 15px;"
+                    (click)="layoutService.showProfileSidebar()">
+                <i class="pi pi-ellipsis-v" style="font-size: 1.5rem;"></i>
+            </button>
+
+            <button *ngIf="(loggedIn$ | async)" class="p-link layout-topbar-button"
+                    style="background: none; border: none; cursor: pointer;"
+                    (click)="logout()">
+                <i class="pi pi-power-off" style="font-size: 1.5rem;"></i>
+                <span style="margin-left: 5px;">Se déconnecter</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Panel de notifications -->
+    <div *ngIf="showNotificationPanel"
+         style="position: fixed; top: 80px; right: 20px; width: 380px; max-height: 500px; background: white; border: 1px solid #e0e0e0; border-radius: 6px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); z-index: 1100; display: flex; flex-direction: column; animation: fadeIn 0.3s ease-out;">
+
+        <div style="padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f8f9fa; border-top-left-radius: 6px; border-top-right-radius: 6px;">
+            <h3 style="margin: 0; font-size: 1.1rem; color: #495057;">Anomalies alerts ({{anomalies.length}})</h3>
+            <button style="color: #6c757d; background: transparent; border: none; cursor: pointer;"
+                    (click)="toggleNotificationPanel()">
+                <i class="pi pi-times" style="font-size: 1rem;"></i>
+            </button>
+        </div>
+
+        <div style="flex: 1; overflow-y: auto; padding: 5px 0;">
+            <div *ngIf="anomalies.length === 0" style="padding: 30px 20px; text-align: center; color: #6c757d;">
+                <i class="pi pi-check-circle" style="font-size: 1.5rem; color: #4caf50; margin-bottom: 10px;"></i>
+                <p style="margin: 0;">No anomalies to report.</p>
+            </div>
+
+            <div *ngFor="let anomaly of anomalies"
+                 [style.background]="hoveredAnomaly === anomaly.id ? '#f8f9fa' : 'white'"
+                 (mouseover)="hoveredAnomaly = anomaly.id"
+                 (mouseout)="hoveredAnomaly = null"
+                 (click)="navigateToAnomaly(anomaly)"
+                 style="display: flex; padding: 12px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer;">
+                <div style="margin-right: 15px; font-size: 1.2rem; color: #6c757d;">
+                    <i class="pi pi-exclamation-triangle" style="color: #f44336;"></i>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #212529; margin-bottom: 4px;">{{anomaly.anomaly_name}}</div>
+                    <div style="color: #495057; font-size: 0.9rem; margin-bottom: 4px;">{{anomaly.alert}}</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #6c757d;">
+                        <span>{{anomaly.region}}</span>
+                        <span>{{anomaly.timestamp | date:'short'}}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 10px 20px; border-top: 1px solid #eee; display: flex; justify-content: space-between; background: #f8f9fa; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px;">
+            <button *ngIf="unreadAnomaliesCount > 0"
+                    style="color: #6c757d; background: transparent; border: none; cursor: pointer; font-size: 0.85rem;"
+                    (click)="onMarkAllAsRead()">
+                <i class="pi pi-check"></i> Tout marquer comme lu
+            </button>
+            <button style="color: #6c757d; background: transparent; border: none; cursor: pointer; font-size: 0.85rem;"
+                    (click)="onRefreshAnomalies()">
+                <i class="pi pi-refresh"></i> Actualiser
+            </button>
+        </div>
     </div>
 </div>
+
+<style>
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Ajout pour éviter les changements de design lors du clic */
+    [style*="display: flex; padding: 12px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer;"]:hover,
+    [style*="display: flex; padding: 12px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer;"]:focus,
+    [style*="display: flex; padding: 12px 20px; border-bottom: 1px solid #f0f0f0; cursor: pointer;"]:active {
+        background: inherit !important;
+        outline: none !important;
+    }
+</style>

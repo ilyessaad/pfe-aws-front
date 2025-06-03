@@ -1,1 +1,107 @@
-<p>idle works!</p>
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
+    <style>
+        .dropdown-container { margin-bottom: 20px; }
+        .card-container { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .card { background: #4A90E2; color: white; padding: 15px; border-radius: 10px; width: 200px; text-align: center; }
+        .charts-container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .chart-row { display: flex; gap: 20px; flex-wrap: wrap; width: 100%; }
+        .chart-card { background: #E6F0FA; padding: 15px; border-radius: 10px; flex: 1; min-width: 300px; box-sizing: border-box; }
+        .chart-card canvas { width: 100% !important; height: auto !important; }
+        .table-card { background: #E6F0FA; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th { background: #D3E3F5; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid #ddd; }
+        .loading { text-align: center; padding: 20px; }
+        .error { color: red; padding: 20px; }
+        .no-data { text-align: center; padding: 20px; color: #666; }
+    </style>
+
+    <h2 style="margin-bottom: 20px; font-size: 24px;">AWS DynamoDB Table Idle</h2>
+
+    <!-- Gestion des erreurs et chargement -->
+    <div class="loading" *ngIf="loading">
+        <p>Loading anomalies...</p>
+    </div>
+    <div class="error" *ngIf="errorMessage">
+        <p>Error: {{ errorMessage }}</p>
+    </div>
+
+    <!-- MultiSelect for User Filter -->
+    <div *ngIf="!loading && !errorMessage && usersWithAnomalies.length > 0" class="dropdown-container">
+        <p>Filter by User:</p>
+        <p-multiSelect
+            [options]="usersWithAnomalies"
+            [(ngModel)]="selectedUsers"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Select Users"
+            (onChange)="onUserSelectionChange()"
+            [showClear]="true"
+            styleClass="w-full md:w-14rem"
+        ></p-multiSelect>
+    </div>
+
+    <!-- Cards in the Same Line -->
+    <div *ngIf="!loading && !errorMessage && anomalies.length > 0" class="card-container" style="display: flex; gap: 20px;">
+        <div class="card">
+            <h3 style="margin: 0; font-size: 16px;">Total DynamoDB Tables</h3>
+            <p style="margin: 5px 0; font-size: 18px;">{{ getFilteredAnomalies().length }}</p>
+        </div>
+        <div class="card" *ngFor="let anomaly of getFilteredAnomalies()">
+            <h3 style="margin: 0; font-size: 16px;">Table Details</h3>
+            <p style="margin: 5px 0; font-size: 14px;">Name: {{ anomaly.details?.table_name || 'Unknown' }}</p>
+            <p style="margin: 5px 0; font-size: 14px;">Metrics: {{ anomaly.details?.metrics || 'N/A' }}</p>
+        </div>
+    </div>
+
+    <!-- Bar Chart: Number of DynamoDB Tables by User -->
+    <div *ngIf="!loading && !errorMessage && anomalies.length > 0" class="charts-container">
+        <div class="chart-row">
+            <div class="chart-card" *ngIf="getFilteredAnomalies().length > 0">
+                <canvas baseChart [data]="userDynamoChartData" [type]="userDynamoChartType" [options]="userDynamoChartOptions"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table for Anomalies List -->
+    <div *ngIf="!loading && !errorMessage && anomalies.length > 0" class="table-card">
+        <h3 style="margin-bottom: 10px; font-size: 20px;">Anomalies List</h3>
+        <p-table
+            [value]="getFilteredAnomalies()"
+            [tableStyle]="{ 'min-width': '50rem' }"
+            [rows]="rowsPerPage"
+            [totalRecords]="totalRecords"
+        >
+            <ng-template pTemplate="header">
+                <tr>
+                    <th>User ID</th>
+                    <th>Region</th>
+                    <th>Anomaly Name</th>
+                    <th>Details</th>
+                    <th>Alert</th>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="body" let-anomaly>
+            <tr>
+                <td>{{ anomaly.user_id }}</td>
+                <td>{{ anomaly.region || 'Unknown' }}</td>
+                <td>{{ anomaly.anomaly_name }}</td>
+                <td>{{ anomaly.details ? JSON.stringify(anomaly.details) : 'N/A' }}</td>
+                <td>{{ anomaly.alert || 'N/A' }}</td>
+            </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
+                    <td colspan="5">No anomalies to display for selected users.</td>
+                </tr>
+            </ng-template>
+        </p-table>
+    </div>
+
+    <!-- Message if no data -->
+    <div *ngIf="!loading && !errorMessage && anomalies.length === 0" class="no-data">
+        <p>No idle DynamoDB tables found.</p>
+    </div>
+
+    <p-toast></p-toast>
+</div>
