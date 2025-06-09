@@ -1,36 +1,25 @@
 import { Component, OnInit } from '@angular/core';
 import { UserService } from '../../service/user.service';
 import { FinOpsService } from '../../service/finops.service';
-import { AwsUser } from '../../models/aws-user';
 import { MessageService } from 'primeng/api';
-import { ConfirmationService } from 'primeng/api';
 import { ChartConfiguration, ChartType, ChartOptions } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { CommonModule } from '@angular/common';
-import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { ToastModule } from 'primeng/toast';
-import { FormsModule } from '@angular/forms';
-import { DialogModule } from 'primeng/dialog';
-import { TableModule } from 'primeng/table';
 import { HttpParams } from '@angular/common/http';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { TabViewModule } from 'primeng/tabview';
+import {FormsModule} from "@angular/forms";
 
 @Component({
     selector: 'app-dashboard',
     templateUrl: './dashboard.component.html',
     styleUrls: [],
-    providers: [MessageService, ConfirmationService],
+    providers: [MessageService],
     standalone: true,
-    imports: [NgChartsModule, CommonModule, ConfirmDialogModule, ToastModule, FormsModule, DialogModule, TableModule, MultiSelectModule, TabViewModule]
+    imports: [NgChartsModule, CommonModule, ToastModule, MultiSelectModule, TabViewModule, FormsModule]
 })
 export class DashboardComponent implements OnInit {
-    users: AwsUser[] = [];
-    displayAddUserDialog: boolean = false;
-    newUser: { access_key_id: string; secret_access_key: string } = {
-        access_key_id: '',
-        secret_access_key: ''
-    };
     currentDate = new Date();
     loading = false;
     errorMessage = '';
@@ -83,8 +72,7 @@ export class DashboardComponent implements OnInit {
     constructor(
         private userService: UserService,
         private finOpsService: FinOpsService,
-        private messageService: MessageService,
-        private confirmationService: ConfirmationService
+        private messageService: MessageService
     ) {}
 
     ngOnInit(): void {
@@ -94,7 +82,6 @@ export class DashboardComponent implements OnInit {
     loadUsersAndInitialize(): void {
         this.userService.getUsers().subscribe({
             next: (users) => {
-                this.users = users;
                 this.availableUserIds = [
                     { label: 'All', value: 'all' },
                     ...users.map((user) => {
@@ -103,27 +90,10 @@ export class DashboardComponent implements OnInit {
                         return { label: userName, value: user.access_key_id };
                     })
                 ];
-                if (this.users.length > 0) {
-                    this.selectedUserIds = [this.users[0].access_key_id];
+                if (users.length > 0) {
+                    this.selectedUserIds = [users[0].access_key_id];
                 }
-                this.finOpsService.getServices().subscribe({
-                    next: (services) => {
-                        const regions = [...new Set(services.map((service: any) => service.region || 'Unknown'))].filter(region => region !== 'Unknown');
-                        this.availableRegions = [
-                            { label: 'All', value: 'all' },
-                            ...regions.map((region: string) => ({ label: region, value: region }))
-                        ];
-                        this.loadFinOpsData();
-                    },
-                    error: (error) => {
-                        this.messageService.add({
-                            severity: 'error',
-                            summary: 'Error',
-                            detail: 'Failed to load regions: ' + error.message
-                        });
-                        this.loadFinOpsData();
-                    }
-                });
+                this.loadAvailableRegions();
             },
             error: (error) => {
                 this.messageService.add({
@@ -131,7 +101,7 @@ export class DashboardComponent implements OnInit {
                     summary: 'Error',
                     detail: error.message
                 });
-                this.loadFinOpsData();
+                this.loadAvailableRegions();
             }
         });
     }
@@ -144,6 +114,7 @@ export class DashboardComponent implements OnInit {
                     { label: 'All', value: 'all' },
                     ...regions.map((region: string) => ({ label: region, value: region }))
                 ];
+                this.loadFinOpsData();
             },
             error: (error) => {
                 this.messageService.add({
@@ -151,6 +122,7 @@ export class DashboardComponent implements OnInit {
                     summary: 'Error',
                     detail: 'Failed to load regions: ' + error.message
                 });
+                this.loadFinOpsData();
             }
         });
     }
@@ -233,10 +205,10 @@ export class DashboardComponent implements OnInit {
             };
         } else if (this.finOpsData && this.selectedUserIds.length > 0) {
             // Pour chaque utilisateur sélectionné, mettre à jour les données de graphique localement
-            const userId = this.selectedUserIds[0]; // Pour simplifier, prenons le premier utilisateur sélectionné (à adapter si nécessaire)
+            const userId = this.selectedUserIds[0]; // Pour simplifier, prenons le premier utilisateur sélectionné
             if (this.finOpsData[userId]) {
                 const data = this.finOpsData[userId];
-                const userName = this.users.find(u => u.access_key_id === userId)?.arn.split('/')[1] || userId;
+                const userName = this.availableUserIds.find(u => u.value === userId)?.label || userId;
 
                 this.costTrendOptions.plugins!.title!.text = `Top 5 Services by Cost (${this.currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}) - ${userName} - ${regionsText}`;
                 this.budgetChartOptions.plugins!.title!.text = `Top 5 Budgets (Closest to Limit) - ${userName}`;
@@ -276,64 +248,5 @@ export class DashboardComponent implements OnInit {
 
     onFilterChange(): void {
         this.loadFinOpsData();
-    }
-
-    showAddUserDialog(): void {
-        this.newUser = { access_key_id: '', secret_access_key: '' };
-        this.displayAddUserDialog = true;
-    }
-
-    addUser(): void {
-        this.userService.addUser(this.newUser).subscribe({
-            next: (response) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: response.message
-                });
-                this.displayAddUserDialog = false;
-                this.loadUsersAndInitialize();
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error.message
-                });
-            }
-        });
-    }
-
-    confirmDeleteUser(userId: number): void {
-        this.confirmationService.confirm({
-            message: 'Are you sure you want to delete this user?',
-            header: 'Delete Confirmation',
-            icon: 'pi pi-exclamation-triangle',
-            acceptLabel: 'Yes',
-            rejectLabel: 'No',
-            accept: () => {
-                this.deleteUser(userId);
-            }
-        });
-    }
-
-    deleteUser(userId: number): void {
-        this.userService.deleteUser(userId).subscribe({
-            next: (response) => {
-                this.messageService.add({
-                    severity: 'success',
-                    summary: 'Success',
-                    detail: response.message
-                });
-                this.loadUsersAndInitialize();
-            },
-            error: (error) => {
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: error.message
-                });
-            }
-        });
     }
 }

@@ -19,9 +19,11 @@ export class AppMenuComponent implements OnInit {
             {
                 label: 'Home',
                 items: [
-                    { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] }
+                    { label: 'Dashboard', icon: 'pi pi-fw pi-home', routerLink: ['/dashboard'] },
+                    { label: 'Users', icon: 'pi pi-fw pi-user', routerLink: ['/list_users'] }
                 ]
             },
+
 
             {
                 label: 'Anomalies',
@@ -29,7 +31,7 @@ export class AppMenuComponent implements OnInit {
                 items: [
                     {
                         label: 'EC2',
-                       // icon: 'pi pi-fw pi-user',
+                        icon: 'pi pi-server',
                         items: [
                             {
                                 label: 'ec2 stopped instance',
@@ -53,10 +55,11 @@ export class AppMenuComponent implements OnInit {
 
                     {
                         label: 'AWS Budget',
+                        icon: 'pi pi-wallet',
                         items: [
                             {
                                 label: 'Audit-budget',
-                                // icon: 'pi pi-fw pi-sign-in',
+
                                 routerLink: ['/budget/audit']
                             },
 
@@ -66,10 +69,11 @@ export class AppMenuComponent implements OnInit {
                     },
                     {
                         label: 'AWS DynamoDB',
+                        icon: 'pi pi-box',
                         items: [
                             {
                                 label: 'Idle',
-                                // icon: 'pi pi-fw pi-sign-in',
+                                //
                                 routerLink: ['/dynamoDB/idle']
                             },
 
@@ -80,10 +84,11 @@ export class AppMenuComponent implements OnInit {
                     },
                     {
                         label: 'AWS EKS',
+                        icon: 'pi pi-sitemap',
                         items: [
                             {
                                 label: 'Extended support',
-                                // icon: 'pi pi-fw pi-sign-in',
+                                //
                                 routerLink: ['/eks/extended_supp']
                             },
 
@@ -93,10 +98,11 @@ export class AppMenuComponent implements OnInit {
                     },
                     {
                         label: 'AWS Elastic IP',
+                        icon: 'pi pi-globe',
                         items: [
                             {
                                 label: 'Not attached',
-                                // icon: 'pi pi-fw pi-sign-in',
+                                //
                                 routerLink: ['/elasticIp/attached']
                             },
 
@@ -106,10 +112,11 @@ export class AppMenuComponent implements OnInit {
                     },
                     {
                         label: 'AWS RDS',
+                        icon: 'pi pi-database',
                         items: [
                             {
                                 label: 'Extended support',
-                                // icon: 'pi pi-fw pi-sign-in',
+                                //
                                 routerLink: ['/rds/extended_supp']
                             },
                             {

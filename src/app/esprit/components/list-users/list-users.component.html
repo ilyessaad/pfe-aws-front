@@ -1,0 +1,170 @@
+<div style="margin-bottom: 40px;">
+    <h2 style="margin-bottom: 20px; font-size: 24px;">List of AWS Accounts</h2>
+    <div style="margin-bottom: 20px;" *ngIf="isAdmin">
+        <button pButton label="Add Account" (click)="showAddUserDialog()" style="padding: 8px 16px; font-size: 14px;"></button>
+    </div>
+    <p-table [value]="users" [tableStyle]="{ 'min-width': '50rem' }">
+        <ng-template pTemplate="header">
+            <tr>
+                <th style="background: #D3E3F5;">Account ID</th>
+                <th style="background: #D3E3F5;">Account Name</th>
+                <th style="background: #D3E3F5;">Access Key ID</th>
+                <th style="background: #D3E3F5;">Created At</th>
+                <th style="background: #D3E3F5;" *ngIf="isAdmin">Actions</th>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-user>
+            <tr>
+                <td>{{ user.account_id }}</td>
+                <td>{{ user.account_name }}</td>
+                <td>{{ user.access_key_id }}</td>
+                <td>{{ user.created_at }}</td>
+                <td *ngIf="isAdmin">
+                    <button
+                        pButton
+                        type="button"
+                        label=""
+                        class="p-button-primary p-button-lg"
+                        icon="pi pi-pencil"
+                        (click)="showUpdateUserDialog(user)"
+                        style="padding: 5px; margin-right: 5px;"
+                    ></button>
+                    <button
+                        pButton
+                        type="button"
+                        label=""
+                        class="p-button-danger p-button-lg"
+                        icon="pi pi-trash"
+                        (click)="confirmDeleteUser(user.account_id)"
+                        style="padding: 5px;"
+                    ></button>
+                </td>
+            </tr>
+        </ng-template>
+        <ng-template pTemplate="emptymessage">
+            <tr>
+                <td [attr.colspan]="isAdmin ? 5 : 4">No accounts found.</td>
+            </tr>
+        </ng-template>
+    </p-table>
+    <p-dialog
+        *ngIf="isAdmin"
+        header="Add AWS Account"
+        [(visible)]="displayAddUserDialog"
+        [modal]="true"
+        [style]="{ width: '30rem' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <form (ngSubmit)="addUser()">
+            <div style="margin-bottom: 20px;">
+                <label for="account_name" style="display: block; margin-bottom: 5px;">Account Name</label>
+                <input
+                    id="account_name"
+                    type="text"
+                    pInputText
+                    [(ngModel)]="newUser.account_name"
+                    name="account_name"
+                    style="width: 100%; padding: 8px; font-size: 14px;"
+                    required
+                />
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label for="access_key_id" style="display: block; margin-bottom: 5px;">Access Key ID</label>
+                <input
+                    id="access_key_id"
+                    type="text"
+                    pInputText
+                    [(ngModel)]="newUser.access_key_id"
+                    name="access_key_id"
+                    style="width: 100%; padding: 8px; font-size: 14px;"
+                    required
+                />
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label for="secret_access_key" style="display: block; margin-bottom: 5px;">Secret Access Key</label>
+                <input
+                    id="secret_access_key"
+                    type="password"
+                    pInputText
+                    [(ngModel)]="newUser.secret_access_key"
+                    name="secret_access_key"
+                    style="width: 100%; padding: 8px; font-size: 14px;"
+                    required
+                />
+            </div>
+            <button
+                pButton
+                type="submit"
+                label="Add"
+                [disabled]="!newUser.access_key_id || !newUser.secret_access_key || !newUser.account_name"
+                style="width: 100%; padding: 8px; font-size: 14px;"
+            ></button>
+        </form>
+    </p-dialog>
+    <p-dialog
+        *ngIf="isAdmin"
+        header="Update AWS Account"
+        [(visible)]="displayUpdateUserDialog"
+        [modal]="true"
+        [style]="{ width: '30rem' }"
+        [draggable]="false"
+        [resizable]="false"
+    >
+        <form (ngSubmit)="updateUser()">
+            <div style="margin-bottom: 20px;">
+                <label for="update_account_name" style="display: block; margin-bottom: 5px;">Account Name</label>
+                <input
+                    id="update_account_name"
+                    type="text"
+                    pInputText
+                    [(ngModel)]="selectedUser.account_name"
+                    name="account_name"
+                    style="width: 100%; padding: 8px; font-size: 14px;"
+                    (input)="toggleEditingName()"
+                    (blur)="resetEditingModes()"
+                    [disabled]="isEditingKeys"
+                    required
+                />
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label for="update_access_key_id" style="display: block; margin-bottom: 5px;">Access Key ID (optional)</label>
+                <input
+                    id="update_access_key_id"
+                    type="text"
+                    pInputText
+                    [(ngModel)]="selectedUser.access_key_id"
+                    name="access_key_id"
+                    style="width: 100%; padding: 8px; font-size: 14px;"
+                    (input)="toggleEditingKeys()"
+                    (blur)="resetEditingModes()"
+                    [disabled]="isEditingName"
+                />
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label for="update_secret_access_key" style="display: block; margin-bottom: 5px;">Secret Access Key (optional)</label>
+                <input
+                    id="update_secret_access_key"
+                    type="password"
+                    pInputText
+                    [(ngModel)]="selectedUser.secret_access_key"
+                    name="secret_access_key"
+                    style="width: 100%; padding: 8px; font-size: 14px;"
+                    (input)="toggleEditingKeys()"
+                    (blur)="resetEditingModes()"
+                    [disabled]="isEditingName"
+                />
+            </div>
+            <button
+                pButton
+                type="submit"
+                label="Update"
+                [disabled]="!hasChanges() || !selectedUser.account_name ||
+                            (isEditingKeys && (!selectedUser.access_key_id || !selectedUser.secret_access_key))"
+                style="width: 100%; padding: 8px; font-size: 14px;"
+            ></button>
+        </form>
+    </p-dialog>
+    <p-toast></p-toast>
+    <p-confirmDialog></p-confirmDialog>
+</div>

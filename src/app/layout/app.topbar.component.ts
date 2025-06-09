@@ -33,7 +33,7 @@ export class AppTopBarComponent implements OnInit, OnDestroy {
         private authService: UserService,
         private messageService: MessageService,
         private router: Router,
-        private anomalyService: AnomalyService
+        private anomalyService: AnomalyService,
     ) { }
 
     ngOnInit(): void {

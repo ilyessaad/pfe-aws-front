@@ -12,6 +12,7 @@ import {ExtendedSupComponent} from "./esprit/components/rds/extended-sup/extende
 import {ExtendedSupportComponent} from "./esprit/components/eks/extended-support/extended-support.component";
 import {ReplicasComponent} from "./esprit/components/rds/replicas/replicas.component";
 import {StoppedComponent} from "./esprit/components/rds/stopped/stopped.component";
+import { ListUsersComponent } from './esprit/components/list-users/list-users.component';
 
 
 @NgModule({
@@ -35,6 +36,7 @@ import {StoppedComponent} from "./esprit/components/rds/stopped/stopped.componen
                 children: [
                     { path: 'dashboard', loadChildren: () => import('./esprit/components/dashboard/dashboard.module').then(m => m.DashboardModule) },
                     { path: 'ec2/stopped_instance', component: Ec2StoppedInstanceComponent },
+                    { path: 'list_users', component: ListUsersComponent },
                     { path: 'budget/audit', component: AuditBudgetComponent },
                     { path: 'ec2/reserved_ins', component: ReservedInsComponent },
                     { path: 'ec2/check_gen', component: CheckGenComponent },

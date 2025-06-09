@@ -55,7 +55,7 @@ export class LoginComponent implements OnInit {
                     if (response.status === 'success') {
                         this.messageService.add({ severity: 'success', summary: 'Succès', detail: 'Connexion réussie' });
                         setTimeout(() => {
-                            this.router.navigate(['/dashboard']);
+                            this.router.navigate(['/list_users']);
                         }, 1000);
                     }
                 },
