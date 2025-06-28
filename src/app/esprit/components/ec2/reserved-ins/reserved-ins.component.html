@@ -16,7 +16,6 @@
         .no-data { text-align: center; padding: 20px; color: #666; }
     </style>
 
-
     <!-- Gestion des erreurs et chargement -->
     <div class="loading" *ngIf="loading">
         <p>Loading anomalies...</p>
@@ -25,11 +24,11 @@
         <p>Error: {{ errorMessage }}</p>
     </div>
 
-    <!-- Checkbox for User Filter -->
-    <div *ngIf="!loading && !errorMessage && usersWithAnomalies.length > 0" class="checkbox-container">
-        <p>Filter by User:</p>
-        <p-checkbox [binary]="true" name="users" value="{{user.value}}" label="{{user.label}}" (onChange)="onUserSelectionChange()"
-                    *ngFor="let user of usersWithAnomalies" [(ngModel)]="selectedUsers"></p-checkbox>
+    <!-- Checkbox for Account Filter -->
+    <div *ngIf="!loading && !errorMessage && accountsWithAnomalies.length > 0" class="checkbox-container">
+        <p>Filter by Account:</p>
+        <p-checkbox [binary]="true" name="accounts" value="{{account.value}}" label="{{account.label}}" (onChange)="onAccountSelectionChange()"
+                    *ngFor="let account of accountsWithAnomalies" [(ngModel)]="selectedAccounts"></p-checkbox>
     </div>
 
     <!-- Card for Total Number of Reserved Instances -->
@@ -47,9 +46,9 @@
             <div class="chart-card">
                 <canvas baseChart [data]="instanceTypeChartData" [type]="instanceTypeChartType" [options]="instanceTypeChartOptions"></canvas>
             </div>
-            <!-- Bar Chart: Reserved Instances by User -->
+            <!-- Bar Chart: Reserved Instances by Account -->
             <div class="chart-card">
-                <canvas baseChart [data]="userChartData" [type]="userChartType" [options]="userChartOptions"></canvas>
+                <canvas baseChart [data]="accountChartData" [type]="accountChartType" [options]="accountChartOptions"></canvas>
             </div>
         </div>
     </div>
@@ -60,7 +59,8 @@
         <p-table [value]="getFilteredAnomalies()" [tableStyle]="{ 'min-width': '50rem' }">
             <ng-template pTemplate="header">
                 <tr>
-                    <th>User ID</th>
+                    <th>Account id</th>
+                    <th>Account Name</th>
                     <th>Region</th>
                     <th>Anomaly Name</th>
                     <th>Details</th>
@@ -69,7 +69,8 @@
             </ng-template>
             <ng-template pTemplate="body" let-anomaly>
                 <tr>
-                    <td>{{ anomaly.user_id }}</td>
+                    <td>{{ anomaly.account_id }}</td>
+                    <td>{{ anomaly.account_name || 'Unknown' }}</td>
                     <td>{{ anomaly.region || 'Unknown' }}</td>
                     <td>{{ anomaly.anomaly_name }}</td>
                     <td>{{ anomaly.details ? JSON.stringify(anomaly.details) : 'N/A' }}</td>
@@ -78,7 +79,7 @@
             </ng-template>
             <ng-template pTemplate="emptymessage">
                 <tr>
-                    <td colspan="5">No anomalies to display for selected users.</td>
+                    <td colspan="5">No anomalies to display for selected accounts.</td>
                 </tr>
             </ng-template>
         </p-table>

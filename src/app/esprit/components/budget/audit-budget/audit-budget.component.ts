@@ -30,9 +30,9 @@ export class AuditBudgetComponent implements OnInit, AfterViewInit {
     loading = false;
     errorMessage = '';
 
-    // MultiSelect for users
-    usersWithAnomalies: { label: string; value: number }[] = [];
-    selectedUsers: number[] = [];
+    // MultiSelect for accounts
+    accountsWithAnomalies: { label: string; value: string }[] = [];
+    selectedAccounts: string[] = [];
 
     // Pagination properties
     rowsPerPage: number = 5;
@@ -61,24 +61,25 @@ export class AuditBudgetComponent implements OnInit, AfterViewInit {
     };
     budgetChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-    // Additional chart for number of budgets per user
-    userIpChartType: ChartType = 'bar';
-    userIpChartOptions: ChartOptions<'bar'> = {
+    // Additional chart for number of budgets per account
+    accountChartType: ChartType = 'bar';
+    accountChartOptions: ChartOptions<'bar'> = {
         scales: {
             y: {
                 beginAtZero: true,
-                title: { display: true, text: 'Number of Budgets' }
+                title: { display: true, text: 'Number of Budgets' },
+                ticks: { stepSize: 1 }
             },
             x: {
-                title: { display: true, text: 'User ID' }
+                title: { display: true, text: 'Account Name' }
             }
         },
         plugins: {
             legend: { display: false },
-            title: { display: true, text: 'Number of Budgets by User' }
+            title: { display: true, text: 'Number of Budgets by Account' }
         }
     };
-    userIpChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+    accountChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
     constructor(
         private anomalyService: AnomalyService,
@@ -91,16 +92,15 @@ export class AuditBudgetComponent implements OnInit, AfterViewInit {
     }
 
     ngAfterViewInit(): void {
-        // Ensure usersWithAnomalies is populated before setting default
-        if (this.usersWithAnomalies.length > 0 && this.selectedUsers.length === 0) {
-            this.selectedUsers = [this.usersWithAnomalies[0].value];
-            console.log('Default selectedUsers in ngAfterViewInit:', this.selectedUsers);
+        if (this.accountsWithAnomalies.length > 0 && this.selectedAccounts.length === 0) {
+            this.selectedAccounts = [this.accountsWithAnomalies[0].value];
+            console.log('Default selectedAccounts in ngAfterViewInit:', this.selectedAccounts);
             this.cdr.detectChanges();
             this.updateCharts();
         } else {
-            console.log('ngAfterViewInit: usersWithAnomalies is empty or selectedUsers already set', {
-                usersWithAnomalies: this.usersWithAnomalies,
-                selectedUsers: this.selectedUsers
+            console.log('ngAfterViewInit: accountsWithAnomalies is empty or selectedAccounts already set', {
+                accountsWithAnomalies: this.accountsWithAnomalies,
+                selectedAccounts: this.selectedAccounts
             });
         }
     }
@@ -127,10 +127,10 @@ export class AuditBudgetComponent implements OnInit, AfterViewInit {
                     if (this.anomalies.length === 0) {
                         console.log('No anomalies data received from API');
                     }
-                    this.updateUserList();
-                    if (this.usersWithAnomalies.length > 0 && this.selectedUsers.length === 0) {
-                        this.selectedUsers = [this.usersWithAnomalies[0].value];
-                        console.log('Default selectedUsers in loadAnomalies:', this.selectedUsers);
+                    this.updateAccountList();
+                    if (this.accountsWithAnomalies.length > 0 && this.selectedAccounts.length === 0) {
+                        this.selectedAccounts = [this.accountsWithAnomalies[0].value];
+                        console.log('Default selectedAccounts in loadAnomalies:', this.selectedAccounts);
                         this.cdr.detectChanges();
                         this.updateCharts();
                     }
@@ -157,14 +157,16 @@ export class AuditBudgetComponent implements OnInit, AfterViewInit {
         });
     }
 
-    updateUserList(): void {
-        const uniqueUsers = [...new Set(this.anomalies.map(anomaly => anomaly.user_id))].filter(user => user !== undefined);
-        this.usersWithAnomalies = uniqueUsers.map(user => ({ label: `User ${user}`, value: user }));
-        console.log('usersWithAnomalies:', this.usersWithAnomalies);
+    updateAccountList(): void {
+        const uniqueAccounts = [...new Set(this.anomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+        this.accountsWithAnomalies = uniqueAccounts.map(account => ({ label: account, value: account }));
+        console.log('accountsWithAnomalies:', this.accountsWithAnomalies);
     }
 
     getFilteredAnomalies(): Anomaly[] {
-        const filtered = this.selectedUsers.length > 0 ? this.anomalies.filter(anomaly => this.selectedUsers.includes(anomaly.user_id)) : [];
+        const filtered = this.selectedAccounts.length > 0
+            ? this.anomalies.filter(anomaly => this.selectedAccounts.includes(anomaly.account_name || 'Unknown'))
+            : [];
         this.totalRecords = filtered.length;
         console.log('Filtered anomalies:', filtered);
         return filtered;
@@ -173,7 +175,7 @@ export class AuditBudgetComponent implements OnInit, AfterViewInit {
     updateCharts(): void {
         const filteredAnomalies = this.getFilteredAnomalies();
 
-        // Budget Details Chart (Bar + Line)
+        // Budget Details Chart (Bar)
         const budgetNames = [...new Set(filteredAnomalies.map(anomaly => anomaly.details?.budget_name))].filter(name => name);
         const actualSpendData = budgetNames.map(name => {
             const anomaly = filteredAnomalies.find(a => a.details?.budget_name === name);
@@ -193,33 +195,33 @@ export class AuditBudgetComponent implements OnInit, AfterViewInit {
             datasets: [
                 { type: 'bar', label: 'Actual Spend', data: actualSpendData, backgroundColor: 'rgba(54, 162, 235, 0.6)' },
                 { type: 'bar', label: 'Budget Limit', data: budgetLimitData, backgroundColor: 'rgba(255, 99, 132, 0.6)' },
-                { type: 'bar', label: 'Forecast Spend', data: forecastSpendData, borderColor: 'rgba(75, 192, 192, 1)' }
+                { type: 'bar', label: 'Forecast Spend', data: forecastSpendData, backgroundColor: 'rgba(75, 192, 192, 0.6)' }
             ]
         };
         console.log('Chart data:', this.budgetChartData);
 
-        // Bar Chart for Number of Budgets per User (if at least 2 users selected)
-        if (this.selectedUsers.length >= 2) {
-            const userIds = [...new Set(filteredAnomalies.map(anomaly => anomaly.user_id))].filter(id => id !== undefined);
-            const userCounts = userIds.map(userId =>
-                filteredAnomalies.filter(anomaly => anomaly.user_id === userId).length
+        // Bar Chart for Number of Budgets per Account
+        if (this.selectedAccounts.length >= 2) {
+            const accountNames = [...new Set(filteredAnomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+            const accountCounts = accountNames.map(accountName =>
+                filteredAnomalies.filter(anomaly => (anomaly.account_name || 'Unknown') === accountName).length
             );
 
-            this.userIpChartData = {
-                labels: userIds.map(id => `User ${id}`),
+            this.accountChartData = {
+                labels: accountNames,
                 datasets: [{
                     label: 'Number of Budgets',
-                    data: userCounts,
+                    data: accountCounts,
                     backgroundColor: 'rgba(54, 162, 235, 0.6)'
                 }]
             };
         } else {
-            this.userIpChartData = { labels: [], datasets: [] };
+            this.accountChartData = { labels: [], datasets: [] };
         }
     }
 
-    onUserSelectionChange(): void {
-        console.log('Selected users after change:', this.selectedUsers);
+    onAccountSelectionChange(): void {
+        console.log('Selected accounts after change:', this.selectedAccounts);
         this.updateCharts();
     }
 

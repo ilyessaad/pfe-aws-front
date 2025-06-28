@@ -9,7 +9,7 @@ import { TableModule } from 'primeng/table';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { PaginatorModule } from 'primeng/paginator';
 import { FormsModule } from '@angular/forms';
-import {AnomalyErrorResponse, AnomalySuccessResponse} from "../../../service/anomaly.service";
+import { AnomalyErrorResponse, AnomalySuccessResponse } from "../../../service/anomaly.service";
 
 @Component({
     selector: 'app-attached',
@@ -32,37 +32,38 @@ export class AttachedComponent implements OnInit {
     loading = false;
     errorMessage = '';
 
-    // Dropdown filter for users
-    usersWithAnomalies: { label: string; value: number }[] = [];
-    selectedUsers: number[] = [];
+    // Dropdown filter for accounts
+    accountsWithAnomalies: { label: string; value: string }[] = [];
+    selectedAccounts: string[] = [];
 
     // Pagination properties
     rowsPerPage: number = 5;
     totalRecords: number = 0;
 
-    // Configuration du graphique pour Elastic IPs par utilisateur (Bar Chart)
-    userIpChartType: ChartType = 'bar';
-    userIpChartOptions: ChartOptions<'bar'> = {
+    // Configuration du graphique pour Elastic IPs par compte (Bar Chart)
+    accountChartType: ChartType = 'bar';
+    accountChartOptions: ChartOptions<'bar'> = {
         scales: {
             y: {
                 beginAtZero: true,
-                title: { display: true, text: 'Number of Elastic IPs' }
+                title: { display: true, text: 'Number of Elastic IPs' },
+                ticks: { stepSize: 1 } // Forcer un pas de 1 pour des valeurs entières
             },
             x: {
-                title: { display: true, text: 'User ID' }
+                title: { display: true, text: 'Account Name' }
             }
         },
         plugins: {
             legend: { display: false },
-            title: { display: true, text: 'Elastic IPs by User' }
+            title: { display: true, text: 'Elastic IPs by Account' }
         }
     };
-    userIpChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+    accountChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
     constructor(
         private anomalyService: AnomalyService,
         private messageService: MessageService,
-        private cdr: ChangeDetectorRef // Added for manual change detection
+        private cdr: ChangeDetectorRef
     ) {}
 
     ngOnInit(): void {
@@ -80,11 +81,11 @@ export class AttachedComponent implements OnInit {
                 if (response.status === 'success') {
                     this.anomalies = (response as AnomalySuccessResponse).data;
                     console.log('Raw anomalies:', this.anomalies);
-                    this.updateUserList();
-                    if (this.usersWithAnomalies.length > 0) {
-                        this.selectedUsers = [this.usersWithAnomalies[0].value];
-                        console.log('Default selectedUsers:', this.selectedUsers); // Debug log
-                        this.cdr.detectChanges(); // Force change detection
+                    this.updateAccountList();
+                    if (this.accountsWithAnomalies.length > 0) {
+                        this.selectedAccounts = [this.accountsWithAnomalies[0].value];
+                        console.log('Default selectedAccounts:', this.selectedAccounts);
+                        this.cdr.detectChanges();
                         this.updateChartData();
                     }
                 } else {
@@ -110,14 +111,16 @@ export class AttachedComponent implements OnInit {
         });
     }
 
-    updateUserList(): void {
-        const uniqueUsers = [...new Set(this.anomalies.map(anomaly => anomaly.user_id))].filter(user => user !== undefined);
-        this.usersWithAnomalies = uniqueUsers.map(user => ({ label: `User ${user}`, value: user }));
-        console.log('usersWithAnomalies:', this.usersWithAnomalies); // Debug log
+    updateAccountList(): void {
+        const uniqueAccounts = [...new Set(this.anomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+        this.accountsWithAnomalies = uniqueAccounts.map(account => ({ label: account, value: account }));
+        console.log('accountsWithAnomalies:', this.accountsWithAnomalies);
     }
 
     getFilteredAnomalies(): Anomaly[] {
-        const filtered = this.selectedUsers.length > 0 ? this.anomalies.filter(anomaly => this.selectedUsers.includes(anomaly.user_id)) : [];
+        const filtered = this.selectedAccounts.length > 0
+            ? this.anomalies.filter(anomaly => this.selectedAccounts.includes(anomaly.account_name || 'Unknown'))
+            : [];
         console.log('Filtered anomalies:', filtered);
         this.totalRecords = filtered.length;
         return filtered;
@@ -126,28 +129,28 @@ export class AttachedComponent implements OnInit {
     updateChartData(): void {
         const filteredAnomalies = this.getFilteredAnomalies();
 
-        if (this.selectedUsers.length >= 2) {
-            const userIds = [...new Set(filteredAnomalies.map(anomaly => anomaly.user_id))].filter(id => id !== undefined);
-            const userCounts = userIds.map(userId =>
-                filteredAnomalies.filter(anomaly => anomaly.user_id === userId).length
+        if (this.selectedAccounts.length >= 2) {
+            const accountNames = [...new Set(filteredAnomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+            const accountCounts = accountNames.map(accountName =>
+                filteredAnomalies.filter(anomaly => (anomaly.account_name || 'Unknown') === accountName).length
             );
 
-            this.userIpChartData = {
-                labels: userIds.map(id => `User ${id}`),
+            this.accountChartData = {
+                labels: accountNames,
                 datasets: [{
                     label: 'Number of Elastic IPs',
-                    data: userCounts,
+                    data: accountCounts,
                     backgroundColor: 'rgba(54, 162, 235, 0.6)'
                 }]
             };
         } else {
-            this.userIpChartData = { labels: [], datasets: [] };
+            this.accountChartData = { labels: [], datasets: [] };
         }
     }
 
-    onUserSelectionChange(event: any): void {
-        this.selectedUsers = event.value || [];
-        console.log('Selected users after change:', this.selectedUsers); // Debug log
+    onAccountSelectionChange(event: any): void {
+        this.selectedAccounts = event.value || [];
+        console.log('Selected accounts after change:', this.selectedAccounts);
         this.updateChartData();
     }
 

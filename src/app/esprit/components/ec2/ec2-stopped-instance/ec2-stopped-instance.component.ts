@@ -39,7 +39,7 @@ export class Ec2StoppedInstanceComponent implements OnInit {
         this.anomalyService.getAnomalies(this.anomalyName).subscribe({
             next: (response: AnomalyResponse) => {
                 if (response.status === 'success') {
-                    this.anomalies = (response as AnomalySuccessResponse).data; // Safely access data
+                    this.anomalies = (response as AnomalySuccessResponse).data;
                     this.updateChartData();
                 } else {
                     const errorResponse = response as AnomalyErrorResponse;
@@ -54,7 +54,6 @@ export class Ec2StoppedInstanceComponent implements OnInit {
         });
     }
 
-    // Statistiques calculées
     get numberOfInstances(): number {
         return this.anomalies.length;
     }
@@ -65,7 +64,7 @@ export class Ec2StoppedInstanceComponent implements OnInit {
 
     get underutilizedCount(): number {
         return this.anomalies.filter(anomaly => {
-            const daysMatch = anomaly.alert.match(/arrêtée depuis (\d+) jours/);
+            const daysMatch = anomaly.alert.match(/stopped for (\d+) days/);
             const daysStopped = daysMatch ? parseInt(daysMatch[1], 10) : 0;
             return daysStopped > 30;
         }).length;
@@ -79,51 +78,54 @@ export class Ec2StoppedInstanceComponent implements OnInit {
     }
 
     barChartType: ChartType = 'bar';
-    lineChartType: ChartType = 'line';
     scatterChartType: ChartType = 'scatter';
     doughnutChartType: ChartType = 'doughnut';
 
-    // Total Downtime Trend (Days)
-    downtimeTrendOptions: ChartOptions<'line'> = {
-        scales: { y: { beginAtZero: true, title: { display: true, text: 'Downtime (Days)' } }, x: { title: { display: true, text: 'Month' } } }
+    volumeTypeCountOptions: ChartOptions<'bar'> = {
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: { display: true, text: 'Number of Volumes' },
+                ticks: { stepSize: 1 } // Forcer un pas de 1 pour des valeurs entières
+            },
+            x: { title: { display: true, text: 'Volume Type' } }
+        }
     };
-    downtimeTrendData: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
+    volumeTypeCountData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-    // Scatter Chart: Volume Size vs. Cost per Volume
     scatterChartOptions: ChartOptions<'scatter'> = {
-        scales: { x: { title: { display: true, text: 'Volume Size (GiB)' } }, y: { title: { display: true, text: 'Estimated Monthly Cost (USD)' } } }
+        scales: {
+            x: { title: { display: true, text: 'Volume Size (GiB)' } },
+            y: { title: { display: true, text: 'Estimated Monthly Cost (USD)' } }
+        }
     };
     scatterChartData: ChartConfiguration<'scatter'>['data'] = { datasets: [] };
 
-    // Volume Size per Instance
     volumeSizeOptions: ChartOptions<'bar'> = {
-        scales: { y: { beginAtZero: true, title: { display: true, text: 'Size (GiB)' } }, x: { title: { display: true, text: 'Instance ID' } } }
+        scales: {
+            y: { beginAtZero: true, title: { display: true, text: 'Size (GiB)' } },
+            x: { title: { display: true, text: 'Instance ID' } }
+        }
     };
     volumeSizeData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-    // Volume Size Distribution (Doughnut Chart)
     volumeSizeDistributionOptions: ChartOptions<'doughnut'> = {
         plugins: { legend: { display: true, position: 'bottom' } }
     };
     volumeSizeDistributionData: ChartConfiguration<'doughnut'>['data'] = { labels: [], datasets: [] };
 
-    // Mettre à jour les données des graphiques
     updateChartData(): void {
-        // Total Downtime Trend
-        this.downtimeTrendData = {
-            labels: ['Nov 2024', 'Dec 2024', 'Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025', 'May 2025'],
+        this.volumeTypeCountData = {
+            labels: this.getVolumeTypeCountData().labels,
             datasets: [
                 {
-                    label: 'Total Downtime (Days)',
-                    data: this.getDowntimeTrendData(),
-                    borderColor: '#AB47BC',
-                    backgroundColor: '#AB47BC',
-                    fill: false
+                    label: 'Number of Volumes by Type',
+                    data: this.getVolumeTypeCountData().counts,
+                    backgroundColor: ['#66bb74', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF']
                 }
             ]
         };
 
-        // Scatter Chart: Volume Size vs. Cost
         this.scatterChartData = {
             datasets: [
                 {
@@ -135,7 +137,6 @@ export class Ec2StoppedInstanceComponent implements OnInit {
             ]
         };
 
-        // Volume Size per Instance
         this.volumeSizeData = {
             labels: this.anomalies.map(anomaly => anomaly.details?.instance_id || 'Unknown'),
             datasets: [
@@ -150,7 +151,6 @@ export class Ec2StoppedInstanceComponent implements OnInit {
             ]
         };
 
-        // Volume Size Distribution
         this.volumeSizeDistributionData = {
             labels: this.anomalies.map(anomaly => anomaly.details?.instance_id || 'Unknown'),
             datasets: [
@@ -166,14 +166,13 @@ export class Ec2StoppedInstanceComponent implements OnInit {
         };
     }
 
-    // Calculer les jours d'arrêt à partir de l'alerte et du timestamp
     getStoppedDaysFromAlert(alert: string, timestamp: string): number {
-        const daysMatch = alert.match(/arrêtée depuis (\d+) jours/);
+        const daysMatch = alert.match(/stopped for (\d+) days/);
         if (daysMatch) {
             const daysStopped = parseInt(daysMatch[1], 10);
             const timestampDate = new Date(timestamp);
             const stoppedDate = new Date(timestampDate.getTime() - daysStopped * 24 * 60 * 60 * 1000);
-            const now = new Date(); // 14:17 CET = 12:17 UTC
+            const now = new Date();
             const diffTime = now.getTime() - stoppedDate.getTime();
             return Math.floor(diffTime / (1000 * 60 * 60 * 24));
         }
@@ -181,7 +180,7 @@ export class Ec2StoppedInstanceComponent implements OnInit {
     }
 
     getStoppedSince(alert: string, timestamp: string): string {
-        const daysMatch = alert.match(/arrêtée depuis (\d+) jours/);
+        const daysMatch = alert.match(/stopped for (\d+) days/);
         if (daysMatch) {
             const daysStopped = parseInt(daysMatch[1], 10);
             const timestampDate = new Date(timestamp);
@@ -195,46 +194,39 @@ export class Ec2StoppedInstanceComponent implements OnInit {
         if (!volumes || volumes.length === 0) return 0;
 
         let totalCost = 0;
-        const pricing = { 'gp3': 0.08, 'io1': 0.125 }; // Prix en USD/GiB/mois en eu-west-1
+        const pricing = {
+            'gp3': 0.08,
+            'gp2': 0.10,
+            'io1': 0.125,
+            'standard': 0.05,
+            'default': 0.10
+        };
 
         for (const volume of volumes) {
             const volumeType = volume.volume_type;
             const size = volume.size || 0;
-            const costPerGiB = pricing[volumeType] || 0.08;
+            const costPerGiB = pricing[volumeType] || pricing['default'];
             totalCost += size * costPerGiB;
         }
 
         return totalCost;
     }
 
-    getDowntimeTrendData(): number[] {
-        const now = new Date('2025-05-26T12:17:00Z');
-        const months = ['Nov 2024', 'Dec 2024', 'Jan 2025', 'Feb 2025', 'Mar 2025', 'Apr 2025', 'May 2025'];
-        const data: number[] = [];
+    getVolumeTypeCountData(): { labels: string[], counts: number[] } {
+        const volumeTypeCounts: { [key: string]: number } = {};
 
-        months.forEach((month, index) => {
-            const monthDate = new Date(2024, 10 + index, 1); // Starting from Nov 2024
-            let totalDowntime = 0;
-
-            this.anomalies.forEach(anomaly => {
-                const daysMatch = anomaly.alert.match(/arrêtée depuis (\d+) jours/);
-                if (daysMatch) {
-                    const daysStopped = parseInt(daysMatch[1], 10);
-                    const stoppedDate = new Date(anomaly.timestamp);
-                    stoppedDate.setDate(stoppedDate.getDate() - daysStopped);
-
-                    if (monthDate >= stoppedDate && monthDate <= now) {
-                        const diffTime = Math.abs(now.getTime() - stoppedDate.getTime());
-                        const daysSinceStopped = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                        totalDowntime += daysSinceStopped;
-                    }
-                }
+        this.anomalies.forEach(anomaly => {
+            const volumes = anomaly.details?.volumes || [];
+            volumes.forEach((volume: any) => {
+                const volumeType = volume.volume_type || 'Unknown';
+                volumeTypeCounts[volumeType] = (volumeTypeCounts[volumeType] || 0) + 1;
             });
-
-            data.push(totalDowntime);
         });
 
-        return data;
+        const labels = Object.keys(volumeTypeCounts);
+        const counts = Object.values(volumeTypeCounts);
+
+        return { labels, counts };
     }
 
     getScatterData(): any[] {
@@ -251,7 +243,7 @@ export class Ec2StoppedInstanceComponent implements OnInit {
 
     getVolumesFromAlert(alert: string): { volumeId: string; type: string; size: number }[] {
         const volumes: { volumeId: string; type: string; size: number }[] = [];
-        const volumeRegex = /Volume (vol-[a-f0-9]+) \(Type: (\w+), Size: (\d+) GiB\)/g;
+        const volumeRegex = /Volume (vol-[a-f0-9]+) \(Type: (\w+), Size: (\d+) GiB\) is attached\./g;
         let match;
         while ((match = volumeRegex.exec(alert)) !== null) {
             volumes.push({ volumeId: match[1], type: match[2], size: parseInt(match[3], 10) });

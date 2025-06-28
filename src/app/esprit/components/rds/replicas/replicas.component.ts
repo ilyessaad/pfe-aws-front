@@ -30,9 +30,9 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
     loading = false;
     errorMessage = '';
 
-    // MultiSelect for users
-    usersWithAnomalies: { label: string; value: number }[] = [];
-    selectedUsers: number[] = [];
+    // MultiSelect for accounts
+    accountsWithAnomalies: { label: string; value: string }[] = [];
+    selectedAccounts: string[] = [];
 
     // Pagination properties
     rowsPerPage: number = 5;
@@ -78,6 +78,9 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
         scales: {
             y: {
                 beginAtZero: true,
+                ticks: {
+                    stepSize: 1 // Ajouté pour des valeurs binaires entières
+                },
                 title: { display: true, text: 'Count' }
             },
             x: {
@@ -110,9 +113,9 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
     };
     metricsChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-    // Bar Chart for replicas per user
-    userReplicasChartType: ChartType = 'bar';
-    userReplicasChartOptions: ChartOptions<'bar'> = {
+    // Bar Chart for replicas per account
+    accountReplicasChartType: ChartType = 'bar';
+    accountReplicasChartOptions: ChartOptions<'bar'> = {
         scales: {
             y: {
                 beginAtZero: true,
@@ -123,15 +126,15 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
                 title: { display: true, text: 'Number of Replicas' }
             },
             x: {
-                title: { display: true, text: 'User ID' }
+                title: { display: true, text: 'Account Name' }
             }
         },
         plugins: {
             legend: { display: false },
-            title: { display: true, text: 'Replicas per User' }
+            title: { display: true, text: 'Replicas per Account' }
         }
     };
-    userReplicasChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+    accountReplicasChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
     constructor(
         private anomalyService: AnomalyService,
@@ -144,15 +147,15 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
     }
 
     ngAfterViewInit(): void {
-        if (this.usersWithAnomalies.length > 0 && this.selectedUsers.length === 0) {
-            this.selectedUsers = [this.usersWithAnomalies[0].value];
-            console.log('Default selectedUsers in ngAfterViewInit:', this.selectedUsers);
+        if (this.accountsWithAnomalies.length > 0 && this.selectedAccounts.length === 0) {
+            this.selectedAccounts = [this.accountsWithAnomalies[0].value];
+            console.log('Default selectedAccounts in ngAfterViewInit:', this.selectedAccounts);
             this.cdr.detectChanges();
             this.updateCharts();
         } else {
-            console.log('ngAfterViewInit: usersWithAnomalies is empty or selectedUsers already set', {
-                usersWithAnomalies: this.usersWithAnomalies,
-                selectedUsers: this.selectedUsers
+            console.log('ngAfterViewInit: accountsWithAnomalies is empty or selectedAccounts already set', {
+                accountsWithAnomalies: this.accountsWithAnomalies,
+                selectedAccounts: this.selectedAccounts
             });
         }
     }
@@ -167,10 +170,10 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
                     if (this.anomalies.length === 0) {
                         console.log('No anomalies data received from API');
                     }
-                    this.updateUserList();
-                    if (this.usersWithAnomalies.length > 0 && this.selectedUsers.length === 0) {
-                        this.selectedUsers = [this.usersWithAnomalies[0].value];
-                        console.log('Default selectedUsers in loadAnomalies:', this.selectedUsers);
+                    this.updateAccountList();
+                    if (this.accountsWithAnomalies.length > 0 && this.selectedAccounts.length === 0) {
+                        this.selectedAccounts = [this.accountsWithAnomalies[0].value];
+                        console.log('Default selectedAccounts in loadAnomalies:', this.selectedAccounts);
                         this.cdr.detectChanges();
                         this.updateCharts();
                     }
@@ -197,14 +200,16 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
         });
     }
 
-    updateUserList(): void {
-        const uniqueUsers = [...new Set(this.anomalies.map(anomaly => anomaly.user_id))].filter(user => user !== undefined);
-        this.usersWithAnomalies = uniqueUsers.map(user => ({ label: `User ${user}`, value: user }));
-        console.log('usersWithAnomalies:', this.usersWithAnomalies);
+    updateAccountList(): void {
+        const uniqueAccounts = [...new Set(this.anomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+        this.accountsWithAnomalies = uniqueAccounts.map(account => ({ label: account, value: account }));
+        console.log('accountsWithAnomalies:', this.accountsWithAnomalies);
     }
 
     getFilteredAnomalies(): Anomaly[] {
-        const filtered = this.selectedUsers.length > 0 ? this.anomalies.filter(anomaly => this.selectedUsers.includes(anomaly.user_id)) : [];
+        const filtered = this.selectedAccounts.length > 0
+            ? this.anomalies.filter(anomaly => this.selectedAccounts.includes(anomaly.account_name || 'Unknown'))
+            : [];
         this.totalRecords = filtered.length;
         console.log('Filtered anomalies:', filtered);
         return filtered;
@@ -213,25 +218,24 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
     updateCharts(): void {
         const filteredAnomalies = this.getFilteredAnomalies();
 
-        // Calculate replicas per user
-        const replicasPerUserMap: { [key: number]: number } = {};
+        // Bar Chart for replicas per account
+        const replicasPerAccountMap: { [key: string]: number } = {};
         filteredAnomalies.forEach(anomaly => {
-            if (anomaly.user_id !== undefined) {
-                replicasPerUserMap[anomaly.user_id] = (replicasPerUserMap[anomaly.user_id] || 0) + 1;
-            }
+            const accountName = anomaly.account_name || 'Unknown';
+            replicasPerAccountMap[accountName] = (replicasPerAccountMap[accountName] || 0) + 1;
         });
-        const userIds = Object.keys(replicasPerUserMap).map(Number);
-        const userCounts = userIds.map(userId => replicasPerUserMap[userId]);
+        const accountNames = Object.keys(replicasPerAccountMap);
+        const accountCounts = accountNames.map(accountName => replicasPerAccountMap[accountName]);
 
-        this.userReplicasChartData = {
-            labels: userIds.map(id => `User ${id}`),
+        this.accountReplicasChartData = {
+            labels: accountNames,
             datasets: [{
                 label: 'Number of Replicas',
-                data: userCounts,
+                data: accountCounts,
                 backgroundColor: 'rgba(75, 192, 192, 0.6)' // Teal
             }]
         };
-        console.log('User replicas chart data:', this.userReplicasChartData);
+        console.log('Account replicas chart data:', this.accountReplicasChartData);
 
         // Bar Chart for engine types with count
         const engines = [...new Set(filteredAnomalies.map(anomaly => anomaly.details?.engine))].filter(engine => engine);
@@ -283,8 +287,8 @@ export class ReplicasComponent implements OnInit, AfterViewInit {
         console.log('Metrics chart data:', this.metricsChartData);
     }
 
-    onUserSelectionChange(): void {
-        console.log('Selected users after change:', this.selectedUsers);
+    onAccountSelectionChange(): void {
+        console.log('Selected accounts after change:', this.selectedAccounts);
         this.updateCharts();
     }
 

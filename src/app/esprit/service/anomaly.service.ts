@@ -7,13 +7,16 @@ import { environment } from 'src/environments/environment';
 // Interface pour représenter une anomalie
 export interface Anomaly {
     id: number;
-    user_id: number;
+    c_id: number;
+    user_id:number;
+    account_id: number | string; // Selon si account_id est un entier ou une chaîne dans aws_users
+    account_name: string;
     region: string;
     anomaly_name: string;
     details: any;
     resource_id: string;
     alert: string;
-    timestamp: string;
+    timestamp: string; // Chaîne pour la date, ou Date si vous parsez en objet Date
 }
 
 // Interface pour la réponse de succès

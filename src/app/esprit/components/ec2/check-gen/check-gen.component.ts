@@ -34,7 +34,7 @@ export class CheckGenComponent implements OnInit {
                 beginAtZero: true,
                 title: { display: true, text: 'Number of Instances' },
                 ticks: { stepSize: 1 },
-                max: 8 // Set maximum value to 10
+                max: 8 // Set maximum value to 8
             },
             x: {
                 title: { display: true, text: 'Region' }
@@ -59,12 +59,12 @@ export class CheckGenComponent implements OnInit {
                 beginAtZero: true,
                 title: { display: true, text: 'Count by Instance Type' },
                 ticks: { stepSize: 1 },
-                max:4
+                max: 4
             }
         },
         plugins: {
             legend: { display: true, position: 'top' },
-            title: { display: true, text: 'Instances ID by Type (' }
+            title: { display: true, text: 'Instances by ID and Type' }
         }
     };
     instanceTypeChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };

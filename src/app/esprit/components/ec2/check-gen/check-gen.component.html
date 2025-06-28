@@ -57,7 +57,8 @@
         <p-table [value]="anomalies" [tableStyle]="{ 'min-width': '50rem' }">
             <ng-template pTemplate="header">
                 <tr>
-                    <th>User ID</th>
+                    <th>Account id</th>
+                    <th>Account name</th>
                     <th>Region</th>
                     <th>Anomaly Name</th>
                     <th>Details</th>
@@ -66,7 +67,8 @@
             </ng-template>
             <ng-template pTemplate="body" let-anomaly>
                 <tr>
-                    <td>{{ anomaly.user_id }}</td>
+                    <td>{{ anomaly.account_id }}</td>
+                    <td>{{ anomaly.account_name }}</td>
                     <td>{{ anomaly.region || 'Unknown' }}</td>
                     <td>{{ anomaly.anomaly_name }}</td>
                     <td>{{ anomaly.details ? JSON.stringify(anomaly.details) : 'N/A' }}</td>

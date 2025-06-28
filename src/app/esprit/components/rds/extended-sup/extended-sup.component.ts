@@ -30,9 +30,9 @@ export class ExtendedSupComponent implements OnInit, AfterViewInit {
     loading = false;
     errorMessage = '';
 
-    // MultiSelect for users
-    usersWithAnomalies: { label: string; value: number }[] = [];
-    selectedUsers: number[] = [];
+    // MultiSelect for accounts
+    accountsWithAnomalies: { label: string; value: string }[] = [];
+    selectedAccounts: string[] = [];
 
     // Pagination properties
     rowsPerPage: number = 5;
@@ -72,9 +72,9 @@ export class ExtendedSupComponent implements OnInit, AfterViewInit {
     };
     rdsDetailChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-    // Bar Chart for number of instances per user
-    userInstanceChartType: ChartType = 'bar';
-    userInstanceChartOptions: ChartOptions<'bar'> = {
+    // Bar Chart for number of instances per account
+    accountInstanceChartType: ChartType = 'bar';
+    accountInstanceChartOptions: ChartOptions<'bar'> = {
         scales: {
             y: {
                 beginAtZero: true,
@@ -85,15 +85,15 @@ export class ExtendedSupComponent implements OnInit, AfterViewInit {
                 title: { display: true, text: 'Number of Instances' }
             },
             x: {
-                title: { display: true, text: 'User ID' }
+                title: { display: true, text: 'Account Name' }
             }
         },
         plugins: {
             legend: { display: false },
-            title: { display: true, text: 'Number of Extended Support Instances by User' }
+            title: { display: true, text: 'Number of Extended Support Instances by Account' }
         }
     };
-    userInstanceChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+    accountInstanceChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
     constructor(
         private anomalyService: AnomalyService,
@@ -106,15 +106,15 @@ export class ExtendedSupComponent implements OnInit, AfterViewInit {
     }
 
     ngAfterViewInit(): void {
-        if (this.usersWithAnomalies.length > 0 && this.selectedUsers.length === 0) {
-            this.selectedUsers = [this.usersWithAnomalies[0].value];
-            console.log('Default selectedUsers in ngAfterViewInit:', this.selectedUsers);
+        if (this.accountsWithAnomalies.length > 0 && this.selectedAccounts.length === 0) {
+            this.selectedAccounts = [this.accountsWithAnomalies[0].value];
+            console.log('Default selectedAccounts in ngAfterViewInit:', this.selectedAccounts);
             this.cdr.detectChanges();
             this.updateCharts();
         } else {
-            console.log('ngAfterViewInit: usersWithAnomalies is empty or selectedUsers already set', {
-                usersWithAnomalies: this.usersWithAnomalies,
-                selectedUsers: this.selectedUsers
+            console.log('ngAfterViewInit: accountsWithAnomalies is empty or selectedAccounts already set', {
+                accountsWithAnomalies: this.accountsWithAnomalies,
+                selectedAccounts: this.selectedAccounts
             });
         }
     }
@@ -129,10 +129,10 @@ export class ExtendedSupComponent implements OnInit, AfterViewInit {
                     if (this.anomalies.length === 0) {
                         console.log('No anomalies data received from API');
                     }
-                    this.updateUserList();
-                    if (this.usersWithAnomalies.length > 0 && this.selectedUsers.length === 0) {
-                        this.selectedUsers = [this.usersWithAnomalies[0].value];
-                        console.log('Default selectedUsers in loadAnomalies:', this.selectedUsers);
+                    this.updateAccountList();
+                    if (this.accountsWithAnomalies.length > 0 && this.selectedAccounts.length === 0) {
+                        this.selectedAccounts = [this.accountsWithAnomalies[0].value];
+                        console.log('Default selectedAccounts in loadAnomalies:', this.selectedAccounts);
                         this.cdr.detectChanges();
                         this.updateCharts();
                     }
@@ -159,14 +159,16 @@ export class ExtendedSupComponent implements OnInit, AfterViewInit {
         });
     }
 
-    updateUserList(): void {
-        const uniqueUsers = [...new Set(this.anomalies.map(anomaly => anomaly.user_id))].filter(user => user !== undefined);
-        this.usersWithAnomalies = uniqueUsers.map(user => ({ label: `User ${user}`, value: user }));
-        console.log('usersWithAnomalies:', this.usersWithAnomalies);
+    updateAccountList(): void {
+        const uniqueAccounts = [...new Set(this.anomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+        this.accountsWithAnomalies = uniqueAccounts.map(account => ({ label: account, value: account }));
+        console.log('accountsWithAnomalies:', this.accountsWithAnomalies);
     }
 
     getFilteredAnomalies(): Anomaly[] {
-        const filtered = this.selectedUsers.length > 0 ? this.anomalies.filter(anomaly => this.selectedUsers.includes(anomaly.user_id)) : [];
+        const filtered = this.selectedAccounts.length > 0
+            ? this.anomalies.filter(anomaly => this.selectedAccounts.includes(anomaly.account_name || 'Unknown'))
+            : [];
         this.totalRecords = filtered.length;
         console.log('Filtered anomalies:', filtered);
         return filtered;
@@ -191,25 +193,25 @@ export class ExtendedSupComponent implements OnInit, AfterViewInit {
         };
         console.log('RDS detail chart data:', this.rdsDetailChartData);
 
-        // Bar Chart for Number of Instances per User (always displayed)
-        const userIds = [...new Set(filteredAnomalies.map(anomaly => anomaly.user_id))].filter(id => id !== undefined);
-        const userCounts = userIds.map(userId =>
-            filteredAnomalies.filter(anomaly => anomaly.user_id === userId).length
+        // Bar Chart for Number of Instances per Account
+        const accountNames = [...new Set(filteredAnomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+        const accountCounts = accountNames.map(accountName =>
+            filteredAnomalies.filter(anomaly => (anomaly.account_name || 'Unknown') === accountName).length
         );
 
-        this.userInstanceChartData = {
-            labels: userIds.map(id => `User ${id}`),
+        this.accountInstanceChartData = {
+            labels: accountNames,
             datasets: [{
                 label: 'Number of Instances',
-                data: userCounts,
+                data: accountCounts,
                 backgroundColor: 'rgba(0, 0, 0, 0.6)' // Black
             }]
         };
-        console.log('User instance chart data:', this.userInstanceChartData);
+        console.log('Account instance chart data:', this.accountInstanceChartData);
     }
 
-    onUserSelectionChange(): void {
-        console.log('Selected users after change:', this.selectedUsers);
+    onAccountSelectionChange(): void {
+        console.log('Selected accounts after change:', this.selectedAccounts);
         this.updateCharts();
     }
 

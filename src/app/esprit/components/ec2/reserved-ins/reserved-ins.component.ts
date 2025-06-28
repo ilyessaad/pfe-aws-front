@@ -7,8 +7,8 @@ import { CommonModule } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
 import { TableModule } from 'primeng/table';
 import { CheckboxModule } from 'primeng/checkbox';
-import {AnomalyErrorResponse, AnomalySuccessResponse} from "../../../service/anomaly.service";
-import {FormsModule} from "@angular/forms";
+import { AnomalyErrorResponse, AnomalySuccessResponse } from "../../../service/anomaly.service";
+import { FormsModule } from "@angular/forms";
 
 @Component({
     selector: 'app-reserved-ins',
@@ -23,9 +23,9 @@ export class ReservedInsComponent implements OnInit {
     loading = false;
     errorMessage = '';
 
-    // Checkbox filter for users
-    usersWithAnomalies: { label: string; value: number }[] = [];
-    selectedUsers: number[] = [];
+    // Checkbox filter for accounts
+    accountsWithAnomalies: { label: string; value: string }[] = [];
+    selectedAccounts: string[] = [];
 
     // Configuration du graphique pour les instances réservées par type (Bar Chart)
     instanceTypeChartType: ChartType = 'bar';
@@ -33,7 +33,8 @@ export class ReservedInsComponent implements OnInit {
         scales: {
             y: {
                 beginAtZero: true,
-                title: { display: true, text: 'Count per Instance Type' }
+                title: { display: true, text: 'Count per Instance Type' },
+                ticks: { stepSize: 1 } // Forcer un pas de 1 pour des valeurs entières
             },
             x: {
                 title: { display: true, text: 'Instance ID' }
@@ -46,24 +47,25 @@ export class ReservedInsComponent implements OnInit {
     };
     instanceTypeChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
-    // Configuration du graphique pour les instances réservées par utilisateur (Bar Chart)
-    userChartType: ChartType = 'bar';
-    userChartOptions: ChartOptions<'bar'> = {
+    // Configuration du graphique pour les instances réservées par compte (Bar Chart)
+    accountChartType: ChartType = 'bar';
+    accountChartOptions: ChartOptions<'bar'> = {
         scales: {
             y: {
                 beginAtZero: true,
-                title: { display: true, text: 'Number of Reserved Instances' }
+                title: { display: true, text: 'Number of Reserved Instances' },
+                ticks: { stepSize: 1 } // Forcer un pas de 1 pour des valeurs entières
             },
             x: {
-                title: { display: true, text: 'User ID' }
+                title: { display: true, text: 'Account Name' }
             }
         },
         plugins: {
             legend: { display: false },
-            title: { display: true, text: 'Reserved Instances by User' }
+            title: { display: true, text: 'Reserved Instances by Account' }
         }
     };
-    userChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+    accountChartData: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
 
     constructor(
         private anomalyService: AnomalyService,
@@ -85,7 +87,7 @@ export class ReservedInsComponent implements OnInit {
             next: (response: AnomalyResponse) => {
                 if (response.status === 'success') {
                     this.anomalies = (response as AnomalySuccessResponse).data;
-                    this.updateUserList();
+                    this.updateAccountList();
                     this.updateChartData();
                 } else {
                     const errorResponse = response as AnomalyErrorResponse;
@@ -110,15 +112,17 @@ export class ReservedInsComponent implements OnInit {
         });
     }
 
-    // Update the list of users with anomalies for the checkbox
-    updateUserList(): void {
-        const uniqueUsers = [...new Set(this.anomalies.map(anomaly => anomaly.user_id))].filter(user => user !== undefined);
-        this.usersWithAnomalies = uniqueUsers.map(user => ({ label: `User ${user}`, value: user }));
+    // Update the list of accounts with anomalies for the checkbox
+    updateAccountList(): void {
+        const uniqueAccounts = [...new Set(this.anomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+        this.accountsWithAnomalies = uniqueAccounts.map(account => ({ label: account, value: account }));
     }
 
-    // Get filtered anomalies based on selected users
+    // Get filtered anomalies based on selected accounts
     getFilteredAnomalies(): Anomaly[] {
-        return this.selectedUsers.length > 0 ? this.anomalies.filter(anomaly => this.selectedUsers.includes(anomaly.user_id)) : this.anomalies;
+        return this.selectedAccounts.length > 0
+            ? this.anomalies.filter(anomaly => this.selectedAccounts.includes(anomaly.account_name || 'Unknown'))
+            : this.anomalies;
     }
 
     updateChartData(): void {
@@ -144,23 +148,23 @@ export class ReservedInsComponent implements OnInit {
             }))
         };
 
-        // Update Bar Chart: Reserved Instances by User
-        const userIds = [...new Set(filteredAnomalies.map(anomaly => anomaly.user_id))];
-        const userCounts = userIds.map(userId =>
-            filteredAnomalies.filter(anomaly => anomaly.user_id === userId).length
+        // Update Bar Chart: Reserved Instances by Account
+        const accountNames = [...new Set(filteredAnomalies.map(anomaly => anomaly.account_name || 'Unknown'))];
+        const accountCounts = accountNames.map(accountName =>
+            filteredAnomalies.filter(anomaly => (anomaly.account_name || 'Unknown') === accountName).length
         );
 
-        this.userChartData = {
-            labels: userIds.map(id => `User ${id}`),
+        this.accountChartData = {
+            labels: accountNames,
             datasets: [{
                 label: 'Number of Reserved Instances',
-                data: userCounts,
+                data: accountCounts,
                 backgroundColor: 'rgba(54, 162, 235, 0.6)'
             }]
         };
     }
 
-    onUserSelectionChange(): void {
+    onAccountSelectionChange(): void {
         this.updateChartData();
     }
 

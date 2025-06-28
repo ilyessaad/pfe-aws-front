@@ -1,23 +1,46 @@
 <div style="max-width: 1200px; margin: 0 auto; padding: 20px; font-family: Arial, sans-serif;">
     <style>
+        /* Cible uniquement les graphiques à redimensionner */
+        .chart-card:nth-child(1) canvas,  /* Top 5 Services */
+        .chart-card:nth-child(3) canvas,  /* Top 3 S3 Buckets */
+        .chart-card:nth-child(4) canvas { /* Top 4 S3 Buckets */
+            width: 100% !important;
+            height: 500px !important; /* Hauteur identique à EBS */
+        }
+
+        /* Optionnel : Ajustez la largeur des conteneurs si nécessaire */
+        .chart-card {
+            min-width: 600px; /* Largeur identique à EBS */
+        }
         .card-container { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
         .card { background: #4A90E2; color: white; padding: 15px; border-radius: 10px; width: 200px; text-align: center; }
         .charts-container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
         .chart-row { display: flex; gap: 20px; flex-wrap: wrap; width: 100%; }
-        .chart-card { background: #E6F0FA; padding: 15px; border-radius: 10px; flex: 1; min-width: 0; width: 0; box-sizing: border-box; }
-        .chart-card canvas { width: 100% !important; height: auto !important; }
+        .chart-card { background: #E6F0FA; padding: 15px; border-radius: 10px; flex: 1; min-width: 450px; box-sizing: border-box; }
+        .chart-card canvas { width: 100% !important; min-height: 350px !important; }
         .table-card { background: #E6F0FA; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 20px; }
         .info-card { background: #E6F0FA; padding: 15px; border-radius: 10px; width: 100%; margin-bottom: 20px; text-align: center; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #D3E3F5; padding: 10px; text-align: left; }
         td { padding: 10px; border-bottom: 1px solid #ddd; }
         .loading { text-align: center; padding: 20px; }
-        .error { color: red; padding: 20px; }
+        .error { color: red; text-align: center; padding: 10px; }
         .filter-section { margin-bottom: 20px; padding: 10px; background: #F5F5F5; border-radius: 5px; display: flex; gap: 20px; align-items: center; }
         .p-multiselect { width: 200px; }
-    </style>
+        .chart-card:has([title*="Previous Month Cost"]) {
+            min-width: 700px; /* Largeur augmentée */
+            min-height: 450px; /* Hauteur augmentée */
+        }
 
-    <h2 style="margin-bottom: 20px; font-size: 24px;">FinOps Overview (Updated: {{ currentDate | date:'yyyy-MM-dd HH:mm:ss z' }})</h2>
+
+        /* Ajuste la taille du canvas */
+        .chart-card:has([title*="Previous Month Cost"]) canvas {
+            height: 450px !important;
+            width: 100% !important;
+        }
+    </style>
+    <!--<h2 style="margin-bottom: 20px; font-size: 24px;">FinOps Overview (Updated: {{ currentDate | date:'yyyy-MM-dd HH:mm:ss' }})</h2>-->
+    <h2 style="margin-bottom: 20px; font-size: 24px;">FinOps Overview </h2>
 
     <!-- Gestion des erreurs et chargement -->
     <div class="loading" *ngIf="loading">
@@ -27,43 +50,12 @@
         <p>Error: {{ errorMessage }}</p>
     </div>
 
-    <!-- Filtres par région et utilisateur -->
-    <div class="filter-section">
-        <h3>Filters</h3>
-        <div>
-            <label>Region</label>
-            <p-multiSelect
-                [options]="availableRegions"
-                [(ngModel)]="selectedRegions"
-                (onChange)="onFilterChange()"
-                placeholder="Select regions"
-                optionLabel="label"
-                optionValue="value"
-                [showToggleAll]="true"
-                [style]="{'width': '200px'}"
-            ></p-multiSelect>
-        </div>
-        <div>
-            <label>User</label>
-            <p-multiSelect
-                [options]="availableUserIds"
-                [(ngModel)]="selectedUserIds"
-                (onChange)="onFilterChange()"
-                placeholder="Select users"
-                optionLabel="label"
-                optionValue="value"
-                [showToggleAll]="true"
-                [style]="{'width': '200px'}"
-            ></p-multiSelect>
-        </div>
-    </div>
-
     <!-- Affichage des données -->
     <div *ngIf="!loading && !errorMessage">
-        <!-- Si un seul utilisateur ou vue globale -->
+        <!-- Vue globale -->
         <div *ngIf="finOpsData && finOpsData.global">
             <div class="card-container">
-                <div class="card" *ngFor="let month of finOpsData.global.monthly_costs">
+                <div class="card" *ngFor="let month of finOpsData.global.monthly_costs | slice:1">
                     <h3 style="margin: 0; font-size: 16px;">{{ month.month }} Cost (USD)</h3>
                     <p style="margin: 5px 0; font-size: 18px;">{{ month.cost | number:'1.2-2' }}</p>
                 </div>
@@ -71,83 +63,195 @@
                     <h3 style="margin: 0; font-size: 16px;">Forecast Cost (USD)</h3>
                     <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData.global.forecast_cost | number:'1.2-2' }}</p>
                 </div>
-                <div class="card" style="background: #AB47BC;">
-                    <h3 style="margin: 0; font-size: 16px;">Number of Budgets</h3>
-                    <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData.global.budget_count }}</p>
+                <div class="card" style="background: #FF9F40;">
+                    <h3 style="margin: 0; font-size: 16px;">Total EBS Size (GB)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ totalEbsSize | number:'1.0-0' }}</p>
+                </div>
+                <div class="card" style="background: #9966FF;">
+                    <h3 style="margin: 0; font-size: 16px;">Total S3 Size (GB)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ totalS3Size | number:'1.0-0' }}</p>
+                </div>
+            </div>
+            <!-- Filtres par région et compte -->
+            <div class="filter-section">
+                <h3>Filters</h3>
+                <div>
+                    <label>Region</label>
+                    <p-multiSelect
+                        [options]="availableRegions"
+                        [(ngModel)]="selectedRegions"
+                        (onChange)="onFilterChange()"
+                        placeholder="Select regions"
+                        optionLabel="label"
+                        optionValue="value"
+                        [showToggleAll]="true"
+                        [style]="{'width': '200px'}"
+                    ></p-multiSelect>
+                </div>
+                <div>
+                    <label>Account</label>
+                    <p-multiSelect
+                        [options]="availableAccountNames"
+                        [(ngModel)]="selectedAccountNames"
+                        (onChange)="onFilterChange()"
+                        placeholder="Select accounts"
+                        optionLabel="label"
+                        optionValue="value"
+                        [showToggleAll]="true"
+                        [style]="{'width': '200px'}"
+                    ></p-multiSelect>
                 </div>
             </div>
 
             <div class="charts-container">
+                <!-- Top 5 Services et Previous Month Cost by Account -->
                 <div class="chart-row">
                     <div class="chart-card">
                         <canvas baseChart [data]="costTrendData" [type]="barChartType" [options]="costTrendOptions"></canvas>
                     </div>
                     <div class="chart-card">
-                        <canvas baseChart [data]="resourcesChartData" [type]="resourcesChartType" [options]="resourcesChartOptions"></canvas>
+                        <canvas baseChart [data]="accountCostChartData" [type]="accountCostChartType" [options]="accountCostChartOptions"></canvas>
                     </div>
                 </div>
-            </div>
-
-            <div class="charts-container">
-                <div class="chart-card">
-                    <canvas baseChart [data]="budgetChartData" [type]="budgetChartType" [options]="budgetChartOptions"></canvas>
+                <!-- Resources by Service, Top 6 EBS Volumes -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="resourcesChartData" [type]="resourcesChartType" [options]="resourcesChartOptions"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas baseChart [data]="ebsVolumesChartData" [type]="ebsVolumesChartType" [options]="ebsVolumesChartOptions"></canvas>
+                    </div>
                 </div>
-            </div>
-
-            <div class="info-card">
-                <h3 style="margin-bottom: 10px; font-size: 20px;">Number of Under-Utilized EC2 Instances (CPU < 10%)</h3>
-                <p style="margin: 5px 0; font-size: 18px;">Total: {{ finOpsData.global.under_utilized_instances.length }}</p>
-            </div>
-
-            <div class="charts-container">
-                <div class="chart-card">
-                    <canvas baseChart [data]="underUtilizedChartData" [type]="underUtilizedChartType" [options]="underUtilizedChartOptions"></canvas>
+                <!-- Top 3 S3 Buckets Size et Top 4 S3 Buckets by Object Count -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="s3SizeChartData" [type]="s3SizeChartType" [options]="s3SizeChartOptions"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas baseChart [data]="s3TopBucketsChartData" [type]="s3TopBucketsChartType" [options]="s3TopBucketsChartOptions"></canvas>
+                    </div>
+                </div>
+                <!-- EC2 Instance States et Types -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="ec2StatesChartData" [type]="ec2StatesChartType" [options]="ec2StatesChartOptions"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas baseChart [data]="ec2TypesChartData" [type]="ec2TypesChartType" [options]="ec2TypesChartOptions"></canvas>
+                    </div>
+                </div>
+                <!-- Number of Under-Utilized EC2 Instances -->
+                <div class="info-card">
+                    <h3 style="margin-bottom: 10px; font-size: 20px;">Number of Under-Utilized EC2 Instances (CPU < 10%)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">Total: {{ finOpsData.global.under_utilized_instances.length }}</p>
+                </div>
+                <!-- Under-Utilized Instances -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="underUtilizedChartData" [type]="underUtilizedChartType" [options]="underUtilizedChartOptions"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Si plusieurs utilisateurs, afficher les données du premier utilisateur sélectionné -->
-        <div *ngIf="finOpsData && selectedUserIds.length > 0 && !finOpsData.global">
+        <!-- Vue par compte -->
+        <div *ngIf="finOpsData && selectedAccountNames.length > 0 && !finOpsData.global">
             <div class="card-container">
-                <div class="card" *ngFor="let month of finOpsData[selectedUserIds[0]].monthly_costs">
+                <div class="card" *ngFor="let month of finOpsData[selectedAccountNames[0]].monthly_costs | slice:1">
                     <h3 style="margin: 0; font-size: 16px;">{{ month.month }} Cost (USD)</h3>
                     <p style="margin: 5px 0; font-size: 18px;">{{ month.cost | number:'1.2-2' }}</p>
                 </div>
                 <div class="card" style="background: #50C878;">
                     <h3 style="margin: 0; font-size: 16px;">Forecast Cost (USD)</h3>
-                    <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData[selectedUserIds[0]].forecast_cost | number:'1.2-2' }}</p>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData[selectedAccountNames[0]].forecast_cost | number:'1.2-2' }}</p>
                 </div>
-                <div class="card" style="background: #AB47BC;">
-                    <h3 style="margin: 0; font-size: 16px;">Number of Budgets</h3>
-                    <p style="margin: 5px 0; font-size: 18px;">{{ finOpsData[selectedUserIds[0]].budget_count }}</p>
+                <div class="card" style="background: #FF9F40;">
+                    <h3 style="margin: 0; font-size: 16px;">Total EBS Size (GB)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ totalEbsSize | number:'1.0-0' }}</p>
+                </div>
+                <div class="card" style="background: #9966FF;">
+                    <h3 style="margin: 0; font-size: 16px;">Total S3 Size (GB)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">{{ totalS3Size | number:'1.0-0' }}</p>
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3>Filters</h3>
+                <div>
+                    <label>Region</label>
+                    <p-multiSelect
+                        [options]="availableRegions"
+                        [(ngModel)]="selectedRegions"
+                        (onChange)="onFilterChange()"
+                        placeholder="Select regions"
+                        optionLabel="label"
+                        optionValue="value"
+                        [showToggleAll]="true"
+                        [style]="{'width': '200px'}"
+                    ></p-multiSelect>
+                </div>
+                <div>
+                    <label>Account</label>
+                    <p-multiSelect
+                        [options]="availableAccountNames"
+                        [(ngModel)]="selectedAccountNames"
+                        (onChange)="onFilterChange()"
+                        placeholder="Select accounts"
+                        optionLabel="label"
+                        optionValue="value"
+                        [showToggleAll]="true"
+                        [style]="{'width': '200px'}"
+                    ></p-multiSelect>
                 </div>
             </div>
 
             <div class="charts-container">
+                <!-- Top 5 Services et Previous Month Cost by Account -->
                 <div class="chart-row">
                     <div class="chart-card">
                         <canvas baseChart [data]="costTrendData" [type]="barChartType" [options]="costTrendOptions"></canvas>
                     </div>
                     <div class="chart-card">
-                        <canvas baseChart [data]="resourcesChartData" [type]="resourcesChartType" [options]="resourcesChartOptions"></canvas>
+                        <canvas baseChart [data]="accountCostChartData" [type]="accountCostChartType" [options]="accountCostChartOptions"></canvas>
                     </div>
                 </div>
-            </div>
-
-            <div class="charts-container">
-                <div class="chart-card">
-                    <canvas baseChart [data]="budgetChartData" [type]="budgetChartType" [options]="budgetChartOptions"></canvas>
+                <!-- Resources by Service, Top 6 EBS Volumes -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="resourcesChartData" [type]="resourcesChartType" [options]="resourcesChartOptions"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas baseChart [data]="ebsVolumesChartData" [type]="ebsVolumesChartType" [options]="ebsVolumesChartOptions"></canvas>
+                    </div>
                 </div>
-            </div>
-
-            <div class="info-card">
-                <h3 style="margin-bottom: 10px; font-size: 20px;">Number of Under-Utilized EC2 Instances (CPU < 10%)</h3>
-                <p style="margin: 5px 0; font-size: 18px;">Total: {{ finOpsData[selectedUserIds[0]].under_utilized_instances.length }}</p>
-            </div>
-
-            <div class="charts-container">
-                <div class="chart-card">
-                    <canvas baseChart [data]="underUtilizedChartData" [type]="underUtilizedChartType" [options]="underUtilizedChartOptions"></canvas>
+                <!-- Top 3 S3 Buckets Size et Top 4 S3 Buckets by Object Count -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="s3SizeChartData" [type]="s3SizeChartType" [options]="s3SizeChartOptions"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas baseChart [data]="s3TopBucketsChartData" [type]="s3TopBucketsChartType" [options]="s3TopBucketsChartOptions"></canvas>
+                    </div>
+                </div>
+                <!-- EC2 Instance States et Types -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="ec2StatesChartData" [type]="ec2StatesChartType" [options]="ec2StatesChartOptions"></canvas>
+                    </div>
+                    <div class="chart-card">
+                        <canvas baseChart [data]="ec2TypesChartData" [type]="ec2TypesChartType" [options]="ec2TypesChartOptions"></canvas>
+                    </div>
+                </div>
+                <!-- Number of Under-Utilized EC2 Instances -->
+                <div class="info-card">
+                    <h3 style="margin-bottom: 10px; font-size: 20px;">Number of Under-Utilized EC2 Instances (CPU < 10%)</h3>
+                    <p style="margin: 5px 0; font-size: 18px;">Total: {{ finOpsData[selectedAccountNames[0]].under_utilized_instances.length }}</p>
+                </div>
+                <!-- Under-Utilized Instances -->
+                <div class="chart-row">
+                    <div class="chart-card">
+                        <canvas baseChart [data]="underUtilizedChartData" [type]="underUtilizedChartType" [options]="underUtilizedChartOptions"></canvas>
+                    </div>
                 </div>
             </div>
         </div>
